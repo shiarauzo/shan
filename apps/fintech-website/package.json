@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 4721",
     "build": "next build",
-    "lint": "eslint",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
+    "dev": "next dev --port 4721",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,8 +21,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

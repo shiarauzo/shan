@@ -8,12 +8,17 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
     "dev": "turbo dev",
     "test": "turbo test",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
     "@types/bun": "latest",
+    "husky": "^9.1.7",
     "next": "16.3.5",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"

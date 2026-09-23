@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
     "dev": "next dev",
     "typecheck": "tsc --noEmit"
   },

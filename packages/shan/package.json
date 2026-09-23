@@ -29,6 +29,8 @@
   },
   "scripts": {
     "build": "tsup",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
     "dev": "tsup --watch",
     "prepublishOnly": "bun run test && bun run build",
     "test": "bun test",

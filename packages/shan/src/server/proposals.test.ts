@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { Effect, Result } from "effect";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Effect, Result } from "effect";
 import {
   applyForPreview,
   discardProposal,
+  extendActivePreview,
   getActiveProposal,
   keepProposal,
   keepProposalEffect,
@@ -24,7 +25,9 @@ async function changedProject() {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    roots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
 
 describe("live previews", () => {
@@ -55,7 +58,9 @@ describe("live previews", () => {
     await writeFile(join(root, "page.tsx"), "edited during preview\n");
 
     expect(discardProposal(proposal.id, root)).rejects.toThrow("changed after");
-    expect(await readFile(join(root, "page.tsx"), "utf8")).toBe("edited during preview\n");
+    expect(await readFile(join(root, "page.tsx"), "utf8")).toBe(
+      "edited during preview\n",
+    );
     await keepProposal(proposal.id, root);
   });
 
@@ -63,19 +68,63 @@ describe("live previews", () => {
     const { root, changes } = await changedProject();
     await writeFile(join(root, "page.tsx"), "stale\n");
 
-    await expect(applyForPreview(root, "Update the page", changes)).rejects.toThrow("changed after");
+    await expect(
+      applyForPreview(root, "Update the page", changes),
+    ).rejects.toThrow("changed after");
     expect(await getActiveProposal(root)).toBeUndefined();
   });
 
   test("exposes typed proposal failures to Effect callers", async () => {
     const { root } = await changedProject();
 
-    const result = await Effect.runPromise(Effect.result(keepProposalEffect("missing", root)));
+    const result = await Effect.runPromise(
+      Effect.result(keepProposalEffect("missing", root)),
+    );
 
     expect(Result.isFailure(result)).toBe(true);
     if (Result.isFailure(result)) {
       expect(result.failure._tag).toBe("ProposalError");
       expect(result.failure.message).toContain("not found");
     }
+  });
+
+  test("extends a live preview and can still discard to the original", async () => {
+    const { root, changes } = await changedProject();
+    const first = await applyForPreview(
+      root,
+      "First turn",
+      changes,
+      "session-1",
+    );
+    const followUp = await WorkspaceDraft.create(root);
+    await followUp.edit("page.tsx", "after", "final");
+
+    const second = await extendActivePreview(
+      root,
+      "Follow-up",
+      followUp.getChanges(),
+      "session-1",
+    );
+
+    expect(second.id).toBe(first.id);
+    expect(await readFile(join(root, "page.tsx"), "utf8")).toBe("final\n");
+    await discardProposal(second.id, root);
+    expect(await readFile(join(root, "page.tsx"), "utf8")).toBe("before\n");
+  });
+
+  test("does not extend a preview owned by another conversation", async () => {
+    const { root, changes } = await changedProject();
+    await applyForPreview(root, "First turn", changes, "session-1");
+    const followUp = await WorkspaceDraft.create(root);
+    await followUp.edit("page.tsx", "after", "final");
+
+    await expect(
+      extendActivePreview(
+        root,
+        "Follow-up",
+        followUp.getChanges(),
+        "session-2",
+      ),
+    ).rejects.toThrow("Another session");
   });
 });

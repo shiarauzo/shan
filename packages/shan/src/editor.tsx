@@ -51,13 +51,13 @@ export type ShanEditorProps = {
 
 type EditorMode = "idle" | "select" | "draw";
 type ActivityFilter = "all" | "files" | "search";
+type ProposalDecision = "keep" | "discard";
 type EditorState =
   | { name: "idle" }
   | { name: "working" }
   | { name: "refreshing"; proposal: Proposal }
   | { name: "previewing"; proposal: Proposal }
-  | { name: "deciding"; proposal: Proposal; action: "keep" | "discard" }
-  | { name: "success"; message: string }
+  | { name: "deciding"; proposal: Proposal; action: ProposalDecision }
   | { name: "error"; message: string; proposal?: Proposal };
 
 type Box = { top: number; left: number; width: number; height: number };
@@ -79,8 +79,6 @@ const ui = {
     border: "rgba(255,255,255,.1)",
     borderStrong: "rgba(255,255,255,.16)",
     positive: "#86d9a6",
-    positiveMuted: "rgba(134,217,166,.12)",
-    positiveBorder: "rgba(134,217,166,.24)",
     warning: "#e4c780",
     danger: "#ee9b96",
     info: "#8dc7ff",
@@ -564,37 +562,31 @@ const styles: Record<string, CSSProperties> = {
     background: "transparent",
     font: "600 9px/1.3 inherit",
   },
-  proposal: {
-    margin: "3px 0 17px 36px",
-    overflow: "hidden",
-    border: `1px solid ${ui.color.positiveBorder}`,
-    borderRadius: ui.radius.group,
-    background: ui.color.positiveMuted,
-  },
-  collapseButton: {
-    border: 0,
+  decisionActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 9,
+    marginRight: 0,
+    marginBottom: 0,
+    marginLeft: 0,
+    minWidth: 0,
     padding: 0,
-    color: ui.color.textMuted,
-    background: "transparent",
-    font: "600 9px/1.3 inherit",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
+    border: 0,
   },
-  file: {
-    borderTop: `1px solid ${ui.color.border}`,
-    padding: "6px 9px",
+  decisionButton: {
+    ...control,
+    height: 28,
+    padding: "0 10px",
+    border: `1px solid ${ui.color.borderStrong}`,
+    color: ui.color.textSecondary,
+    background: ui.color.surfaceRaised,
     fontSize: 9,
   },
-  patch: {
-    maxHeight: 180,
-    overflow: "auto",
-    margin: "7px 0 2px",
-    padding: 8,
-    borderRadius: ui.radius.control,
-    color: ui.color.textSecondary,
-    background: ui.color.surfaceDeep,
-    font: `9px/1.45 ${ui.font.mono}`,
-    whiteSpace: "pre",
+  keepButton: {
+    border: `1px solid ${ui.color.accentBorder}`,
+    color: ui.color.surfaceDeep,
+    background: ui.color.accent,
   },
 };
 
@@ -606,6 +598,54 @@ export function activityFilterButtonStyle(
     ...styles.filterButton,
     ...(selectedFilter === filter ? styles.activeFilter : {}),
   };
+}
+
+export function proposalReviewMessageId(
+  messages: ShanSession["messages"],
+  proposalId: string,
+) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.proposalId === proposalId) return messages[index]?.id;
+  }
+  return undefined;
+}
+
+export function ProposalDecisionButtons({
+  disabled,
+  pendingAction,
+  onDecide,
+}: {
+  disabled: boolean;
+  pendingAction?: ProposalDecision;
+  onDecide: (action: ProposalDecision) => void;
+}) {
+  return (
+    <fieldset aria-label="Review changes" style={styles.decisionActions}>
+      <button
+        type="button"
+        disabled={disabled}
+        style={{
+          ...styles.decisionButton,
+          opacity: disabled ? 0.5 : 1,
+        }}
+        onClick={() => onDecide("discard")}
+      >
+        {pendingAction === "discard" ? "Discarding…" : "Discard changes"}
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        style={{
+          ...styles.decisionButton,
+          ...styles.keepButton,
+          opacity: disabled ? 0.5 : 1,
+        }}
+        onClick={() => onDecide("keep")}
+      >
+        {pendingAction === "keep" ? "Keeping…" : "Keep changes"}
+      </button>
+    </fieldset>
+  );
 }
 
 async function post(endpoint: string, body: unknown): Promise<ShanApiResponse> {
@@ -1146,8 +1186,6 @@ export function ShanEditor({
   const [hoverBox, setHoverBox] = useState<Box | null>(null);
   const [pageBeforeChange, setPageBeforeChange] = useState<PageSnapshot>();
   const [motionMessage, setMotionMessage] = useState("");
-  const [areChangesExpanded, setAreChangesExpanded] = useState(true);
-  const changesId = useId();
   const selectedNode = useRef<Element | null>(null);
   const feedNode = useRef<HTMLDivElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1217,6 +1255,7 @@ export function ShanEditor({
           setState({ name: "previewing", proposal: result.proposal });
           setPageBeforeChange(readPageSnapshot(endpoint));
           setOpen(true);
+          setAgentOpen(true);
         } else if (!cancelled && result.status === "idle") {
           clearPageSnapshot(endpoint);
         }
@@ -1332,7 +1371,6 @@ export function ShanEditor({
     event?.preventDefault();
     const value = prompt.trim();
     if (!value || busy || readOnly) return;
-    setAreChangesExpanded(true);
     stopMotion(selectedNode.current);
     try {
       const before = capturePageSnapshot(document.body).snapshot;
@@ -1377,7 +1415,7 @@ export function ShanEditor({
     }
   }
 
-  async function decide(action: "keep" | "discard") {
+  async function decide(action: ProposalDecision) {
     if (!proposal || busy) return;
     setState({ name: "deciding", proposal, action });
     try {
@@ -1397,20 +1435,10 @@ export function ShanEditor({
         rememberSession(endpoint, result.session);
         setSession(result.session);
       }
-      const fileCount =
-        result.status === "kept" || result.status === "discarded"
-          ? result.files.length
-          : 0;
       clearPageSnapshot(endpoint);
       setPageBeforeChange(undefined);
       setPrompt("");
-      setState({
-        name: "success",
-        message:
-          action === "keep"
-            ? `Kept ${fileCount} changed file${fileCount === 1 ? "" : "s"}.`
-            : `Discarded changes in ${fileCount} file${fileCount === 1 ? "" : "s"}.`,
-      });
+      setState({ name: "idle" });
     } catch (error) {
       setState({
         name: "error",
@@ -1574,8 +1602,11 @@ export function ShanEditor({
       ? `Drawing note · ${stroke.points.length} points`
       : "No element selected — prompt applies globally";
   const hasContext = !!selected || stroke.points.length > 0;
-  const status =
-    state.name === "error" || state.name === "success" ? state.message : null;
+  const pendingDecision = state.name === "deciding" ? state.action : undefined;
+  const proposalMessageId =
+    proposal && session && !readOnly
+      ? proposalReviewMessageId(session.messages, proposal.id)
+      : undefined;
   const sessionOptions: StyledSelectOption[] = sessionList.map((summary) => ({
     value: summary.id,
     label: `${summary.id === currentSessionId ? "Current — " : ""}${summary.title}`,
@@ -1783,7 +1814,13 @@ export function ShanEditor({
                       >
                         {message.text}
                       </p>
-                      {message.proposalStatus ? (
+                      {proposal && message.id === proposalMessageId ? (
+                        <ProposalDecisionButtons
+                          disabled={busy}
+                          pendingAction={pendingDecision}
+                          onDecide={(action) => void decide(action)}
+                        />
+                      ) : message.proposalStatus ? (
                         <span
                           style={{
                             ...styles.turnStatus,
@@ -1843,98 +1880,31 @@ export function ShanEditor({
                 })()
               : null}
 
-            {proposal ? (
-              <section style={styles.proposal} aria-label="Live changes">
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "9px 10px",
-                    color:
-                      state.name === "refreshing"
-                        ? ui.color.warning
-                        : ui.color.positive,
-                    fontSize: 9,
-                    fontWeight: 700,
-                  }}
-                >
-                  <span>
-                    {state.name === "refreshing"
-                      ? "Applying changes…"
-                      : "✓ Changes live"}
-                  </span>
-                  <span
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <span
-                      style={{ color: ui.color.textMuted, fontWeight: 500 }}
-                    >
-                      {proposal.files.length} file
-                      {proposal.files.length === 1 ? "" : "s"}
-                    </span>
-                    <button
-                      type="button"
-                      style={styles.collapseButton}
-                      aria-expanded={areChangesExpanded}
-                      aria-controls={changesId}
-                      onClick={() =>
-                        setAreChangesExpanded((expanded) => !expanded)
-                      }
-                    >
-                      {areChangesExpanded ? "Hide" : "Show"}
-                    </button>
-                  </span>
-                </div>
-                <div id={changesId} hidden={!areChangesExpanded}>
-                  <div
-                    style={{
-                      padding: "0 10px 9px",
-                      color: ui.color.textSecondary,
-                      fontSize: 10,
-                    }}
-                  >
+            {proposal && !readOnly && !proposalMessageId ? (
+              <div style={styles.message}>
+                <span style={{ ...styles.avatar, ...styles.agentAvatar }}>
+                  ✦
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <time style={styles.messageTime}>Shan · now</time>
+                  <p style={{ ...styles.messageText, ...styles.assistantText }}>
                     {proposal.summary}
-                  </div>
-                  {proposal.files.map((file) => (
-                    <details key={file.path} style={styles.file}>
-                      <summary
-                        style={{
-                          overflow: "hidden",
-                          cursor: "pointer",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <span style={{ opacity: 0.65, marginRight: 7 }}>
-                          {file.status}
-                        </span>
-                        {file.path}
-                        <span
-                          style={{ marginLeft: 7, color: ui.color.positive }}
-                        >
-                          +{file.additions}
-                        </span>
-                        <span style={{ marginLeft: 4, color: ui.color.danger }}>
-                          −{file.deletions}
-                        </span>
-                      </summary>
-                      <pre style={styles.patch}>{file.patch}</pre>
-                    </details>
-                  ))}
+                  </p>
+                  <ProposalDecisionButtons
+                    disabled={busy}
+                    pendingAction={pendingDecision}
+                    onDecide={(action) => void decide(action)}
+                  />
                 </div>
-              </section>
+              </div>
             ) : null}
 
-            {state.name === "error" || state.name === "success" ? (
+            {state.name === "error" ? (
               <div
                 role="status"
                 style={{
                   margin: "0 0 12px 36px",
-                  color:
-                    state.name === "error"
-                      ? ui.color.danger
-                      : ui.color.positive,
+                  color: ui.color.danger,
                   fontSize: 10,
                 }}
               >
@@ -2071,35 +2041,9 @@ export function ShanEditor({
             </ToolButton>
           </div>
 
-          {proposal ? (
-            <>
-              <ToolButton
-                label="Discard"
-                disabled={busy}
-                onClick={() => void decide("discard")}
-              >
-                <IconDiscard />
-              </ToolButton>
-              <ToolButton
-                label="Keep"
-                disabled={busy}
-                onClick={() => void decide("keep")}
-              >
-                <IconKeep />
-              </ToolButton>
-            </>
-          ) : null}
-
-          {status ? (
-            <p
-              role="status"
-              style={{
-                ...styles.note,
-                color:
-                  state.name === "error" ? ui.color.danger : ui.color.positive,
-              }}
-            >
-              {status}
+          {state.name === "error" ? (
+            <p role="status" style={{ ...styles.note, color: ui.color.danger }}>
+              {state.message}
             </p>
           ) : motionMessage ? (
             <p style={styles.note} title={contextLabel}>
@@ -2242,33 +2186,6 @@ function IconSessions() {
         stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconDiscard() {
-  return (
-    <svg {...svgProps()} aria-hidden="true">
-      <path
-        d="m4.2 4.2 7.6 7.6M11.8 4.2 4.2 11.8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconKeep() {
-  return (
-    <svg {...svgProps()} aria-hidden="true">
-      <path
-        d="m3.4 8.1 2.8 2.8 6.4-6.4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

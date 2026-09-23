@@ -2,66 +2,66 @@
 
 Target: 4:40, leaving 20 seconds of buffer.
 
-## 1. Draw the change — 0:00–0:20
+## 1. Video opening — 0:00–0:25
 
-Shan is a visual agent editor for Next.js. It turns what you point at and draw
-into a change you can try on the page.
+[video plays — let it breathe]
 
-## 2. Product value — 0:20–0:50
+500,000 designers already animate for the web. They know what they want.
+The problem is the tool standing between the idea and the frame.
 
-Founders and design engineers can see the motion they want, but their coding
-agent only gets text. Describing path, timing, and easing turns a quick visual
-idea into a slow handoff.
+## 2. The prompt interface — 0:25–0:45
 
-## 3. Product — 0:50–1:15
+[pause on the slide]
 
-With Shan, you select the element, draw the motion, and try the change live.
-The page itself becomes the prompting and review surface.
+This is what most AI products look like: a prompt bar, a few suggestions,
+nowhere to go but type. The result arrives in a chat reply.
 
-## 4. Live demo — 1:15–2:40
+Shan is different.
 
-1. Load the sample orbit or draw a rough circle.
-2. Play the literal path. Point out that local geometry preserves every wobble.
-3. Read it with Token Factory. Point out the named motion and immediate
-   playback.
-4. Move to the next slide while the measured result is still on screen.
+## 3. Motion complexity — 0:45–1:05
 
-## 5. Model advantage — 2:40–3:10
+Six hours. That's how long it took a contractor to recreate one simple
+Intercom web animation in Rive. Shan gets motion direction to a live animated
+change in the page, in the session you're already in.
 
-Local code can clean or replay coordinates. It cannot decide what the person
-meant. Token Factory turns up to 80 sampled points into one named, validated
-MotionSpec. Read the point count, model latency, motion, and duration collected
-by the live demo.
+## 4. Meet Shan — 1:05–1:25
 
-## 6. Architecture — 3:10–3:40
+Shan turns motion direction into production-ready web animation.
+Select any element on the live page, draw the motion, and a model names
+the intent. The source changes live — keep or discard.
 
-Selection and drawing happen in the browser. Only normalized x, y, and time
-reach Llama 3.3 70B through Nebius Token Factory. The validated MotionSpec
-returns to the browser and plays with the Web Animations API. Token Factory is
-in the critical path.
+## 5. Feature 1: Select — 1:25–1:55
 
-## 7. Company potential — 3:40–4:10
+Point at the page. Click any rendered element in the running app.
+Shan finds it in the DOM. No HTML inspection, no hunting component names.
+The page is the interface.
 
-The first users are Next.js founders, design engineers, and product teams. The
-open package is the distribution wedge. Paid team review, shared visual
-context, and production controls are the expansion.
+## 6. Feature 2: Draw + model reading — 1:55–3:15
 
-## 8. Responsible design — 4:10–4:30
+This is the live demo. Load the sample orbit or draw a rough circle.
+Play the literal path — every wobble preserved.
+Now read it with Token Factory. Qwen 3 30B returns a named motion spec:
+orbit, 2400 ms, ease-in-out. Intent, not path.
 
-For motion reading, screenshots, source, and secrets never leave the browser.
-The model sees normalized coordinates. Its response must match six allowed
-motions, bounded timing, and known easing values before anything plays.
+## 7. Feature 3: Source patch — 3:15–3:55
 
-## 9. Close — 4:30–4:40
+This is the part every other tool skips. Shan turns the motion spec
+into a source-code diff. Review in the browser, keep it, or discard it.
+Chat ends in a reply. This changes your file.
 
-Shan makes the interface the prompt. Show the intent, try the change, and keep
-what works.
+## 8. Close — 3:55–4:15
+
+[let the phrase land]
+
+What are you waiting for? Bring your app to life.
+
+---
 
 ## Criterion coverage
 
-- Product value and functionality, 25%: slides 2–4
-- Business potential, 20%: slide 7
-- Measurable model advantage, 20%: slides 4–5
-- Architecture and Token Factory, 20%: slide 6
-- Demo clarity, 10%: slide 4 and the timed flow
-- Responsible design, 5%: slide 8
+- Product value and functionality, 25%: slides 4–7
+- Measurable model advantage, 20%: slide 6 (literal path vs. named spec, live)
+- Business potential, 20%: slides 1–3 establish the market
+- Architecture and Token Factory, 20%: slide 6 (Qwen 3 30B on Nebius, live)
+- Demo clarity, 10%: slide 6 live interaction
+- Responsible design, 5%: slide 6 — only coordinates go to the model

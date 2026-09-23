@@ -23,9 +23,9 @@ with the cursor.
 
 The repository is a Turborepo with a publishable `shan` package and two UI-only Next.js examples: a marketing website and a private-account fintech website called Sable. The package provides the floating editor, DOM selection, drawing notes, direct animation, model-backed motion readings, element-aware code prompts, and keep/discard controls.
 
-The fintech example also hosts a nine-slide, keyboard-navigable pitch at
-`/pitch`. It covers all six judging criteria and includes an interactive motion
-demo with local playback and a dedicated Token Factory endpoint.
+The fintech example also hosts an eight-slide, keyboard-navigable pitch at
+`/pitch`. It includes an interactive motion demo with local playback and a
+dedicated Token Factory endpoint.
 
 ## Next action
 

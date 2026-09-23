@@ -12,7 +12,13 @@ export type MotionSpec = {
   reading: string;
 };
 
-export const DEFAULT_NEBIUS_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+/**
+ * Default model for motion intent reading via Nebius Token Factory.
+ * Qwen3-30B-A3B-Instruct-2507 is a compact MoE (30.5B parameters, ~3B active)
+ * well-suited for structured JSON classification tasks like motion naming.
+ */
+export const DEFAULT_MOTION_MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507";
+export const DEFAULT_NEBIUS_MODEL = DEFAULT_MOTION_MODEL;
 export const NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1/";
 
 const MOTION_LABELS: Record<MotionName, string> = {

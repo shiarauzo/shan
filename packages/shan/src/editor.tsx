@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -62,13 +63,152 @@ type Box = { top: number; left: number; width: number; height: number };
 
 const line = "rgba(255,255,255,.09)";
 const strongLine = "rgba(255,255,255,.14)";
+const BLUE = "#0d99ff";
+const ICON = "#f5f5f5";
 const styles: Record<string, CSSProperties> = {
-  shell: {
+  logoButton: {
+    pointerEvents: "auto",
     position: "fixed",
     zIndex: 2147483647,
+    right: 20,
+    bottom: 20,
+    display: "grid",
+    placeItems: "center",
+    width: 40,
+    height: 40,
+    padding: 0,
+    border: "1px solid rgba(255,255,255,.32)",
+    borderRadius: "50%",
+    background: "#0a0a0a",
+    color: "#fff",
+    boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+    cursor: "pointer",
+  },
+  toolbar: {
+    pointerEvents: "auto",
+    position: "fixed",
+    zIndex: 2147483647,
+    left: "50%",
+    bottom: 20,
+    transform: "translateX(-50%)",
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    height: 48,
+    maxWidth: "calc(100vw - 28px)",
+    padding: "6px 8px",
+    border: "1px solid rgba(255,255,255,.1)",
+    borderRadius: 14,
+    background: "#2c2c2c",
+    boxShadow: "0 18px 48px rgba(0,0,0,.4)",
+    color: ICON,
+    font: "500 12px/1.2 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+  group: {
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+  },
+  rightGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    marginLeft: 4,
+    padding: "2px 4px",
+    borderRadius: 10,
+    background: "rgba(0,0,0,.28)",
+  },
+  divider: {
+    width: 1,
+    height: 22,
+    margin: "0 6px",
+    background: "rgba(255,255,255,.14)",
+    flex: "none",
+  },
+  tool: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    height: 32,
+    minWidth: 32,
+    padding: "0 6px",
+    border: 0,
+    borderRadius: 8,
+    background: "transparent",
+    color: ICON,
+    cursor: "pointer",
+  },
+  toolActive: {
+    background: BLUE,
+    color: "#fff",
+  },
+  toolDisabled: {
+    opacity: 0.35,
+    cursor: "default",
+  },
+  promptSlot: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    width: "auto",
+    minWidth: 140,
+    maxWidth: "min(460px, 52vw)",
+    height: 32,
+    marginLeft: 4,
+  },
+  modelSelect: {
+    flex: "none",
+    maxWidth: 148,
+    height: 32,
+    border: 0,
+    borderRadius: 8,
+    outline: 0,
+    padding: "0 8px",
+    color: "#f5f5f5",
+    background: "rgba(0,0,0,.35)",
+    font: "600 11px/1 ui-sans-serif, system-ui, sans-serif",
+    cursor: "pointer",
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    height: 32,
+    border: 0,
+    outline: 0,
+    borderRadius: 8,
+    padding: "0 10px",
+    color: "#f5f5f5",
+    background: "rgba(0,0,0,.35)",
+    font: "500 12px/1 ui-sans-serif, system-ui, sans-serif",
+  },
+  apply: {
+    flex: "none",
+    height: 32,
+    padding: "0 10px",
+    border: 0,
+    borderRadius: 8,
+    background: "#f4f4f5",
+    color: "#111",
+    font: "600 11px/1 ui-sans-serif, system-ui, sans-serif",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  note: {
+    maxWidth: 180,
+    margin: "0 4px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "rgba(255,255,255,.55)",
+    fontSize: 11,
+  },
+  sessionPanel: {
+    position: "fixed",
+    zIndex: 2147483644,
     top: 12,
     right: 12,
-    bottom: 12,
+    bottom: 82,
     display: "flex",
     flexDirection: "column",
     width: "min(430px, calc(100vw - 24px))",
@@ -101,25 +241,6 @@ const styles: Record<string, CSSProperties> = {
     color: "#b7bcb7",
     background: "rgba(255,255,255,.035)",
     font: "600 16px/1 inherit",
-    cursor: "pointer",
-  },
-  restoreButton: {
-    position: "fixed",
-    zIndex: 2147483647,
-    right: 16,
-    bottom: 16,
-    display: "grid",
-    placeItems: "center",
-    width: 48,
-    height: 48,
-    border: "1px solid rgba(168,230,193,.28)",
-    borderRadius: 15,
-    padding: 0,
-    color: "#a8e6c1",
-    background: "rgba(17,20,18,.975)",
-    boxShadow: "0 16px 44px rgba(9,12,10,.35), 0 2px 8px rgba(9,12,10,.24)",
-    backdropFilter: "blur(20px)",
-    font: "700 18px/1 ui-sans-serif, system-ui, sans-serif",
     cursor: "pointer",
   },
   brand: { display: "flex", alignItems: "center", gap: 8, fontWeight: 700 },
@@ -653,7 +774,10 @@ export function ShanEditor({
   const [sessionList, setSessionList] = useState<ShanSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>();
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
-  const [minimized, setMinimized] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const [mode, setMode] = useState<EditorMode>("idle");
   const [selected, setSelected] = useState<SelectedElementContext | null>(null);
   const [selectedBox, setSelectedBox] = useState<Box | null>(null);
@@ -664,6 +788,7 @@ export function ShanEditor({
   const changesId = useId();
   const selectedNode = useRef<Element | null>(null);
   const feedNode = useRef<HTMLDivElement | null>(null);
+  const promptRef = useRef<HTMLInputElement | null>(null);
   const stroke = useStrokeCapture({
     enabled: mode === "draw",
     onStart: () => setMotionMessage("Drawing note captured."),
@@ -685,6 +810,14 @@ export function ShanEditor({
     () => setSelectedBox(boxFor(selectedNode.current)),
     [],
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (promptOpen) promptRef.current?.focus();
+  }, [promptOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -721,6 +854,7 @@ export function ShanEditor({
         if (!cancelled && result.status === "previewing") {
           setState({ name: "previewing", proposal: result.proposal });
           setPageBeforeChange(readPageSnapshot(endpoint));
+          setOpen(true);
         } else if (!cancelled && result.status === "idle") {
           clearPageSnapshot(endpoint);
         }
@@ -758,10 +892,11 @@ export function ShanEditor({
   }, [currentSessionId, endpoint, state.name]);
 
   useEffect(() => {
+    if (!sessionsOpen) return;
     const node = feedNode.current;
     if (node && (session?.updatedAt || state.name))
       node.scrollTop = node.scrollHeight;
-  }, [session?.updatedAt, state.name]);
+  }, [session?.updatedAt, sessionsOpen, state.name]);
 
   useEffect(() => {
     if (!selected) return;
@@ -807,11 +942,24 @@ export function ShanEditor({
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setMode("idle");
+      if (event.key !== "Escape") return;
+      if (promptOpen) {
+        setPromptOpen(false);
+        return;
+      }
+      if (mode !== "idle") {
+        setMode("idle");
+        return;
+      }
+      if (sessionsOpen) {
+        setSessionsOpen(false);
+        return;
+      }
+      if (!busy) setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [busy, mode, promptOpen, sessionsOpen]);
 
   function promptContext(): ShanPromptContext | undefined {
     const drawing = sampleForModel(stroke.getPoints());
@@ -963,6 +1111,7 @@ export function ShanEditor({
       }
       if (result.session) setSession(result.session);
       if (result.sessions) setSessionList(result.sessions);
+      setPromptOpen(false);
       setState(
         result.status === "previewing"
           ? { name: "previewing", proposal: result.proposal }
@@ -1030,8 +1179,8 @@ export function ShanEditor({
     setMotionMessage("");
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
       event.preventDefault();
       void sendPrompt();
     }
@@ -1044,6 +1193,22 @@ export function ShanEditor({
     } catch {}
   }
 
+  function toggleOpen() {
+    setOpen((value) => {
+      if (value) {
+        setMode("idle");
+        setPromptOpen(false);
+        setSessionsOpen(false);
+      }
+      return !value;
+    });
+  }
+
+  function setTool(next: EditorMode) {
+    setMode((current) => (current === next ? "idle" : next));
+    if (next !== "idle") setPromptOpen(false);
+  }
+
   const drawingReady = strokeIsUsable(stroke.points);
   const readOnly = !!currentSessionId && session?.id !== currentSessionId;
   const contextLabel = selected
@@ -1051,22 +1216,11 @@ export function ShanEditor({
     : stroke.points.length
       ? `Drawing note · ${stroke.points.length} points`
       : "No element selected — prompt applies globally";
+  const hasContext = !!selected || stroke.points.length > 0;
+  const status =
+    state.name === "error" || state.name === "success" ? state.message : null;
 
-  if (minimized) {
-    return (
-      <button
-        data-shan-editor
-        className={className}
-        type="button"
-        style={styles.restoreButton}
-        aria-label="Restore Shan editor"
-        title="Restore Shan editor"
-        onClick={() => setMinimized(false)}
-      >
-        <span aria-hidden="true">✦</span>
-      </button>
-    );
-  }
+  if (!mounted) return null;
 
   return (
     <>
@@ -1117,406 +1271,393 @@ export function ShanEditor({
       {hoverBox ? <Highlight box={hoverBox} color="#60a5fa" /> : null}
       {selectedBox ? <Highlight box={selectedBox} color="#a78bfa" /> : null}
 
-      <aside
-        data-shan-editor
-        className={className}
-        style={styles.shell}
-        aria-label="Shan visual editor"
-      >
-        <header style={styles.header}>
-          <div style={styles.headerStart}>
+      {sessionsOpen ? (
+        <aside
+          data-shan-editor
+          id="shan-sessions"
+          style={styles.sessionPanel}
+          aria-label="Agent sessions"
+        >
+          <header style={styles.header}>
+            <div style={styles.headerStart}>
+              <button
+                type="button"
+                style={styles.minimizeButton}
+                aria-label="Close agent sessions"
+                title="Close sessions"
+                onClick={() => {
+                  setMode("idle");
+                  setHoverBox(null);
+                  setSessionsOpen(false);
+                }}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+              <div style={styles.brand}>
+                <span style={styles.mark}>✦</span>
+                <span>Agent sessions</span>
+                {session?.status === "working" ? (
+                  <span style={styles.live}>Live</span>
+                ) : null}
+              </div>
+            </div>
             <button
               type="button"
-              style={styles.minimizeButton}
-              aria-label="Minimize Shan editor"
-              title="Minimize"
-              onClick={() => {
-                setMode("idle");
-                setHoverBox(null);
-                setMinimized(true);
-              }}
+              style={{ ...styles.newSession, opacity: busy ? 0.5 : 1 }}
+              disabled={busy}
+              onClick={() => void newSession()}
             >
-              <span aria-hidden="true">−</span>
+              <span aria-hidden="true">＋</span> New
             </button>
-            <div style={styles.brand}>
-              <span style={styles.mark}>✦</span>
-              <span>Shan</span>
-              <span style={styles.live}>Live</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            style={{ ...styles.newSession, opacity: busy ? 0.5 : 1 }}
-            disabled={busy}
-            onClick={() => void newSession()}
-          >
-            <span aria-hidden="true">＋</span> New
-          </button>
-        </header>
+          </header>
 
-        <section style={styles.sessionHeader}>
-          <div style={styles.sessionEyebrow}>
-            {readOnly ? "Previous session · Read only" : "Current session"}
-          </div>
-          <select
-            aria-label="Conversation session"
-            value={session?.id ?? ""}
-            onChange={(event) => void viewSession(event.target.value)}
-            style={styles.sessionSelect}
-          >
-            {sessionList.map((summary) => (
-              <option key={summary.id} value={summary.id}>
-                {summary.id === currentSessionId ? "Current — " : ""}
-                {summary.title}
-              </option>
-            ))}
-            {session &&
-            !sessionList.some((summary) => summary.id === session.id) ? (
-              <option value={session.id}>{session.title}</option>
-            ) : null}
-          </select>
-          <div style={styles.sessionMeta}>
-            {session?.messages.length ?? 0} messages ·{" "}
-            {session?.activities.length ?? 0} activities
-            {session?.status === "working" ? " · Agent working" : ""}
-          </div>
-          <fieldset
-            style={{
-              ...styles.filters,
-              minWidth: 0,
-              marginRight: 0,
-              marginBottom: 0,
-              marginLeft: 0,
-              padding: 0,
-              border: 0,
-            }}
-            aria-label="Filter agent activity"
-          >
-            {(["all", "files", "search"] as const).map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                style={{
-                  ...styles.filterButton,
-                  ...(activityFilter === filter ? styles.activeFilter : {}),
-                }}
-                onClick={() => setActivityFilter(filter)}
-              >
-                {filter === "all"
-                  ? "All activity"
-                  : filter === "files"
-                    ? "Files"
-                    : "Search"}
-              </button>
-            ))}
-          </fieldset>
-        </section>
-
-        <div ref={feedNode} style={styles.feed} aria-live="polite">
-          {!session || session.messages.length === 0 ? (
-            <div style={styles.empty}>
-              <span style={{ ...styles.mark, marginBottom: 12 }}>✦</span>
-              <strong style={{ color: "#f3f4ef", fontSize: 14 }}>
-                What should we change?
-              </strong>
-              <span style={{ maxWidth: 270, marginTop: 5, fontSize: 10 }}>
-                Select an element, draw a note, or describe an update to start
-                this session.
-              </span>
+          <section style={styles.sessionHeader}>
+            <div style={styles.sessionEyebrow}>
+              {readOnly ? "Previous session · Read only" : "Current session"}
             </div>
-          ) : (
-            session.messages.map((message) => {
-              const activities = session.activities.filter(
-                (activity) => activity.turnId === message.turnId,
-              );
-              return (
-                <div key={message.id} style={styles.message}>
-                  <span
-                    style={{
-                      ...styles.avatar,
-                      ...(message.role === "assistant"
-                        ? styles.agentAvatar
-                        : {}),
-                    }}
-                  >
-                    {message.role === "assistant" ? "✦" : "You"}
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <time style={styles.messageTime}>
-                      {message.role === "assistant" ? "Shan · " : ""}
-                      {timeLabel(message.createdAt)}
-                    </time>
-                    {message.role === "assistant" ? (
-                      <ActivityList
-                        activities={activities}
-                        filter={activityFilter}
-                      />
-                    ) : null}
-                    <p
+            <select
+              aria-label="Conversation session"
+              value={session?.id ?? ""}
+              onChange={(event) => void viewSession(event.target.value)}
+              style={styles.sessionSelect}
+            >
+              {sessionList.map((summary) => (
+                <option key={summary.id} value={summary.id}>
+                  {summary.id === currentSessionId ? "Current — " : ""}
+                  {summary.title}
+                </option>
+              ))}
+              {session &&
+              !sessionList.some((summary) => summary.id === session.id) ? (
+                <option value={session.id}>{session.title}</option>
+              ) : null}
+            </select>
+            <div style={styles.sessionMeta}>
+              {session?.messages.length ?? 0} messages ·{" "}
+              {session?.activities.length ?? 0} activities
+              {session?.status === "working" ? " · Agent working" : ""}
+            </div>
+            <fieldset
+              style={{
+                ...styles.filters,
+                minWidth: 0,
+                marginRight: 0,
+                marginBottom: 0,
+                marginLeft: 0,
+                padding: 0,
+                border: 0,
+              }}
+              aria-label="Filter agent activity"
+            >
+              {(["all", "files", "search"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  style={{
+                    ...styles.filterButton,
+                    ...(activityFilter === filter ? styles.activeFilter : {}),
+                  }}
+                  onClick={() => setActivityFilter(filter)}
+                >
+                  {filter === "all"
+                    ? "All activity"
+                    : filter === "files"
+                      ? "Files"
+                      : "Search"}
+                </button>
+              ))}
+            </fieldset>
+          </section>
+
+          <div ref={feedNode} style={styles.feed} aria-live="polite">
+            {!session || session.messages.length === 0 ? (
+              <div style={styles.empty}>
+                <span style={{ ...styles.mark, marginBottom: 12 }}>✦</span>
+                <strong style={{ color: "#f3f4ef", fontSize: 14 }}>
+                  What should we change?
+                </strong>
+                <span style={{ maxWidth: 270, marginTop: 5, fontSize: 10 }}>
+                  Select an element, draw a note, or describe an update to start
+                  this session.
+                </span>
+              </div>
+            ) : (
+              session.messages.map((message) => {
+                const activities = session.activities.filter(
+                  (activity) => activity.turnId === message.turnId,
+                );
+                return (
+                  <div key={message.id} style={styles.message}>
+                    <span
                       style={{
-                        ...styles.messageText,
+                        ...styles.avatar,
                         ...(message.role === "assistant"
-                          ? styles.assistantText
+                          ? styles.agentAvatar
                           : {}),
                       }}
                     >
-                      {message.text}
-                    </p>
-                    {message.proposalStatus ? (
-                      <span
-                        style={{
-                          ...styles.turnStatus,
-                          color:
-                            message.proposalStatus === "discarded"
-                              ? "#e49d98"
-                              : message.proposalStatus === "previewing"
-                                ? "#a8e6c1"
-                                : "#969d96",
-                        }}
-                      >
-                        {message.proposalStatus === "previewing"
-                          ? "● Changes live"
-                          : message.proposalStatus === "kept"
-                            ? "✓ Changes kept"
-                            : "↶ Changes discarded"}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          {session?.status === "working"
-            ? (() => {
-                const lastTurn = [...session.messages]
-                  .reverse()
-                  .find((message) => message.role === "user")?.turnId;
-                const activities = session.activities.filter(
-                  (activity) => activity.turnId === lastTurn,
-                );
-                return (
-                  <div style={styles.message}>
-                    <span style={{ ...styles.avatar, ...styles.agentAvatar }}>
-                      ✦
+                      {message.role === "assistant" ? "✦" : "You"}
                     </span>
                     <div style={{ minWidth: 0 }}>
-                      <time style={styles.messageTime}>Shan · now</time>
-                      <ActivityList
-                        activities={activities}
-                        filter={activityFilter}
-                      />
+                      <time style={styles.messageTime}>
+                        {message.role === "assistant" ? "Shan · " : ""}
+                        {timeLabel(message.createdAt)}
+                      </time>
+                      {message.role === "assistant" ? (
+                        <ActivityList
+                          activities={activities}
+                          filter={activityFilter}
+                        />
+                      ) : null}
                       <p
                         style={{
                           ...styles.messageText,
-                          ...styles.assistantText,
-                          color: "#969d96",
+                          ...(message.role === "assistant"
+                            ? styles.assistantText
+                            : {}),
                         }}
                       >
-                        <i style={{ ...styles.runningDot, marginRight: 8 }} />
-                        Working on this turn…
+                        {message.text}
                       </p>
+                      {message.proposalStatus ? (
+                        <span
+                          style={{
+                            ...styles.turnStatus,
+                            color:
+                              message.proposalStatus === "discarded"
+                                ? "#e49d98"
+                                : message.proposalStatus === "previewing"
+                                  ? "#a8e6c1"
+                                  : "#969d96",
+                          }}
+                        >
+                          {message.proposalStatus === "previewing"
+                            ? "● Changes live"
+                            : message.proposalStatus === "kept"
+                              ? "✓ Changes kept"
+                              : "↶ Changes discarded"}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 );
-              })()
-            : null}
+              })
+            )}
 
-          {proposal ? (
-            <section style={styles.proposal} aria-label="Live changes">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "9px 10px",
-                  color: state.name === "refreshing" ? "#e4c780" : "#a8e6c1",
-                  fontSize: 9,
-                  fontWeight: 700,
-                }}
-              >
-                <span>
-                  {state.name === "refreshing"
-                    ? "Applying changes…"
-                    : "✓ Changes live"}
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ color: "#969d96", fontWeight: 500 }}>
-                    {proposal.files.length} file
-                    {proposal.files.length === 1 ? "" : "s"}
-                  </span>
-                  <button
-                    type="button"
-                    style={styles.collapseButton}
-                    aria-expanded={areChangesExpanded}
-                    aria-controls={changesId}
-                    onClick={() =>
-                      setAreChangesExpanded((expanded) => !expanded)
-                    }
-                  >
-                    {areChangesExpanded ? "Hide" : "Show"}
-                  </button>
-                </span>
-              </div>
-              <div id={changesId} hidden={!areChangesExpanded}>
+            {session?.status === "working"
+              ? (() => {
+                  const lastTurn = [...session.messages]
+                    .reverse()
+                    .find((message) => message.role === "user")?.turnId;
+                  const activities = session.activities.filter(
+                    (activity) => activity.turnId === lastTurn,
+                  );
+                  return (
+                    <div style={styles.message}>
+                      <span style={{ ...styles.avatar, ...styles.agentAvatar }}>
+                        ✦
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <time style={styles.messageTime}>Shan · now</time>
+                        <ActivityList
+                          activities={activities}
+                          filter={activityFilter}
+                        />
+                        <p
+                          style={{
+                            ...styles.messageText,
+                            ...styles.assistantText,
+                            color: "#969d96",
+                          }}
+                        >
+                          <i style={{ ...styles.runningDot, marginRight: 8 }} />
+                          Working on this turn…
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()
+              : null}
+
+            {proposal ? (
+              <section style={styles.proposal} aria-label="Live changes">
                 <div
                   style={{
-                    padding: "0 10px 9px",
-                    color: "#b9beb9",
-                    fontSize: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 10px",
+                    color: state.name === "refreshing" ? "#e4c780" : "#a8e6c1",
+                    fontSize: 9,
+                    fontWeight: 700,
                   }}
                 >
-                  {proposal.summary}
-                </div>
-                {proposal.files.map((file) => (
-                  <details key={file.path} style={styles.file}>
-                    <summary
-                      style={{
-                        overflow: "hidden",
-                        cursor: "pointer",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                  <span>
+                    {state.name === "refreshing"
+                      ? "Applying changes…"
+                      : "✓ Changes live"}
+                  </span>
+                  <span
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#969d96", fontWeight: 500 }}>
+                      {proposal.files.length} file
+                      {proposal.files.length === 1 ? "" : "s"}
+                    </span>
+                    <button
+                      type="button"
+                      style={styles.collapseButton}
+                      aria-expanded={areChangesExpanded}
+                      aria-controls={changesId}
+                      onClick={() =>
+                        setAreChangesExpanded((expanded) => !expanded)
+                      }
                     >
-                      <span style={{ opacity: 0.65, marginRight: 7 }}>
-                        {file.status}
-                      </span>
-                      {file.path}
-                      <span style={{ marginLeft: 7, color: "#a8e6c1" }}>
-                        +{file.additions}
-                      </span>
-                      <span style={{ marginLeft: 4, color: "#e49d98" }}>
-                        −{file.deletions}
-                      </span>
-                    </summary>
-                    <pre style={styles.patch}>{file.patch}</pre>
-                  </details>
-                ))}
-              </div>
+                      {areChangesExpanded ? "Hide" : "Show"}
+                    </button>
+                  </span>
+                </div>
+                <div id={changesId} hidden={!areChangesExpanded}>
+                  <div
+                    style={{
+                      padding: "0 10px 9px",
+                      color: "#b9beb9",
+                      fontSize: 10,
+                    }}
+                  >
+                    {proposal.summary}
+                  </div>
+                  {proposal.files.map((file) => (
+                    <details key={file.path} style={styles.file}>
+                      <summary
+                        style={{
+                          overflow: "hidden",
+                          cursor: "pointer",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span style={{ opacity: 0.65, marginRight: 7 }}>
+                          {file.status}
+                        </span>
+                        {file.path}
+                        <span style={{ marginLeft: 7, color: "#a8e6c1" }}>
+                          +{file.additions}
+                        </span>
+                        <span style={{ marginLeft: 4, color: "#e49d98" }}>
+                          −{file.deletions}
+                        </span>
+                      </summary>
+                      <pre style={styles.patch}>{file.patch}</pre>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {state.name === "error" || state.name === "success" ? (
               <div
+                role="status"
                 style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 6,
-                  padding: "8px 9px 9px",
+                  margin: "0 0 12px 36px",
+                  color: state.name === "error" ? "#e49d98" : "#a8e6c1",
+                  fontSize: 10,
                 }}
               >
-                <button
-                  type="button"
-                  style={styles.mutedButton}
-                  disabled={busy}
-                  onClick={() => void decide("discard")}
-                >
-                  {state.name === "deciding" && state.action === "discard"
-                    ? "Discarding…"
-                    : "Undo turn"}
-                </button>
-                <button
-                  type="button"
-                  style={styles.button}
-                  disabled={busy}
-                  onClick={() => void decide("keep")}
-                >
-                  {state.name === "deciding" && state.action === "keep"
-                    ? "Keeping…"
-                    : "Keep changes"}
-                </button>
+                {state.message}
               </div>
-            </section>
-          ) : null}
+            ) : null}
+          </div>
+        </aside>
+      ) : null}
 
-          {state.name === "error" || state.name === "success" ? (
-            <div
-              role="status"
-              style={{
-                margin: "0 0 12px 36px",
-                color: state.name === "error" ? "#e49d98" : "#a8e6c1",
-                fontSize: 10,
+      <button
+        type="button"
+        data-shan-editor
+        className={className}
+        aria-label={open ? "Close editor" : "Open editor"}
+        aria-expanded={open}
+        aria-controls="shan-toolbar"
+        style={styles.logoButton}
+        onClick={toggleOpen}
+      >
+        <LogoMark />
+      </button>
+
+      {open ? (
+        <aside
+          data-shan-editor
+          id="shan-toolbar"
+          style={styles.toolbar}
+          aria-label="Shan editor"
+        >
+          <div style={styles.group}>
+            <ToolButton
+              label="Select element"
+              active={mode === "select"}
+              onClick={() => setTool("select")}
+            >
+              <IconPointer />
+            </ToolButton>
+          </div>
+
+          <div style={styles.divider} aria-hidden="true" />
+
+          <div style={styles.rightGroup}>
+            <ToolButton
+              label="Draw note"
+              active={mode === "draw"}
+              onClick={() => setTool("draw")}
+            >
+              <IconSquiggle />
+            </ToolButton>
+            <ToolButton
+              label="Play drawing"
+              disabled={!selected || !drawingReady}
+              onClick={playDrawing}
+            >
+              <IconMeasure />
+            </ToolButton>
+            <ToolButton
+              label="Refine motion"
+              accent
+              disabled={!selected || !drawingReady}
+              onClick={() => void refineMotion()}
+            >
+              <IconDiamond />
+            </ToolButton>
+            <ToolButton
+              label="Prompt"
+              active={promptOpen}
+              disabled={readOnly}
+              onClick={() => {
+                setMode("idle");
+                setPromptOpen((value) => !value);
               }}
             >
-              {state.message}
-            </div>
-          ) : null}
-        </div>
-
-        <div style={styles.tools}>
-          <button
-            type="button"
-            style={{
-              ...styles.mutedButton,
-              ...(mode === "select" ? styles.activeButton : {}),
-            }}
-            onClick={() => setMode(mode === "select" ? "idle" : "select")}
-          >
-            {selected ? "Reselect" : "Select"}
-          </button>
-          <button
-            type="button"
-            style={{
-              ...styles.mutedButton,
-              ...(mode === "draw" ? styles.activeButton : {}),
-            }}
-            onClick={() => setMode(mode === "draw" ? "idle" : "draw")}
-          >
-            Draw
-          </button>
-          <button
-            type="button"
-            style={styles.mutedButton}
-            disabled={!selected || !drawingReady}
-            onClick={playDrawing}
-          >
-            Play
-          </button>
-          <button
-            type="button"
-            style={styles.mutedButton}
-            disabled={!selected || !drawingReady}
-            onClick={() => void refineMotion()}
-          >
-            Refine
-          </button>
-          <button
-            type="button"
-            style={styles.mutedButton}
-            disabled={!selected && stroke.points.length === 0}
-            onClick={clearContext}
-          >
-            Clear
-          </button>
-          <div title={contextLabel} style={styles.context}>
-            {motionMessage || contextLabel}
+              <IconCode />
+            </ToolButton>
+            <ToolButton
+              label="Agent sessions"
+              active={sessionsOpen}
+              onClick={() => {
+                setMode("idle");
+                setSessionsOpen((value) => !value);
+              }}
+            >
+              <IconSessions />
+            </ToolButton>
           </div>
-        </div>
 
-        <div style={styles.composerWrap}>
-          <form style={styles.composer} onSubmit={sendPrompt}>
-            <textarea
-              aria-label="Change prompt"
-              value={prompt}
-              disabled={busy || readOnly}
-              onChange={(event) => setPrompt(event.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={
-                readOnly
-                  ? "Previous sessions are read only"
-                  : busy
-                    ? "Applying changes…"
-                    : session?.messages.length
-                      ? "Continue this conversation…"
-                      : placeholder
-              }
-              rows={1}
-              style={styles.textarea}
-            />
-            <div style={styles.composerFooter}>
+          {promptOpen ? (
+            <form style={styles.promptSlot} onSubmit={sendPrompt}>
               {models.length > 1 ? (
                 <select
                   aria-label="AI model"
                   disabled={busy}
                   value={selectedModelId}
                   onChange={(event) => selectModel(event.target.value)}
-                  style={{ ...styles.select, opacity: busy ? 0.5 : 1 }}
+                  style={{ ...styles.modelSelect, opacity: busy ? 0.5 : 1 }}
                   title={
                     models.find((model) => model.id === selectedModelId)
                       ?.description
@@ -1532,29 +1673,288 @@ export function ShanEditor({
                     </option>
                   ))}
                 </select>
-              ) : (
-                <span
-                  style={{ marginRight: "auto", color: "#656b66", fontSize: 9 }}
-                >
-                  Current page
-                </span>
-              )}
-              <span style={styles.sendHint}>↵ Send · ⇧↵ New line</span>
+              ) : null}
+              <input
+                ref={promptRef}
+                aria-label="Prompt"
+                value={prompt}
+                disabled={busy || readOnly}
+                onChange={(event) => setPrompt(event.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={
+                  readOnly
+                    ? "Previous sessions are read only"
+                    : busy
+                      ? "Applying…"
+                      : placeholder
+                }
+                style={styles.input}
+              />
               <button
-                disabled={!prompt.trim() || busy || readOnly}
                 type="submit"
+                disabled={!prompt.trim() || busy || readOnly}
                 style={{
-                  ...styles.button,
+                  ...styles.apply,
                   opacity: !prompt.trim() || busy || readOnly ? 0.5 : 1,
                 }}
               >
-                {state.name === "working" ? "Working…" : "Send"}
+                {state.name === "working" ? "…" : "Apply"}
               </button>
-            </div>
-          </form>
-        </div>
-      </aside>
+            </form>
+          ) : proposal ? (
+            <>
+              <p
+                style={{
+                  ...styles.note,
+                  color:
+                    state.name === "error"
+                      ? "#fca5a5"
+                      : "rgba(255,255,255,.55)",
+                }}
+                title={
+                  state.name === "error" ? state.message : proposal.summary
+                }
+              >
+                {state.name === "error" ? state.message : proposal.summary}
+              </p>
+              <ToolButton
+                label="Discard"
+                disabled={busy}
+                onClick={() => void decide("discard")}
+              >
+                <IconDiscard />
+              </ToolButton>
+              <ToolButton
+                label="Keep"
+                disabled={busy}
+                onClick={() => void decide("keep")}
+              >
+                <IconKeep />
+              </ToolButton>
+            </>
+          ) : null}
+
+          {status ? (
+            <p
+              role="status"
+              style={{
+                ...styles.note,
+                color: state.name === "error" ? "#fca5a5" : "#86efac",
+              }}
+            >
+              {status}
+            </p>
+          ) : motionMessage ? (
+            <p style={styles.note} title={contextLabel}>
+              {motionMessage}
+            </p>
+          ) : null}
+
+          {hasContext ? (
+            <ToolButton label="Clear context" onClick={clearContext}>
+              <IconClear />
+            </ToolButton>
+          ) : null}
+        </aside>
+      ) : null}
     </>
+  );
+}
+
+function ToolButton({
+  label,
+  children,
+  active = false,
+  accent = false,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  children: ReactNode;
+  active?: boolean;
+  accent?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active || undefined}
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        ...styles.tool,
+        ...(active ? styles.toolActive : {}),
+        ...(accent && !active ? { color: BLUE } : {}),
+        ...(disabled ? styles.toolDisabled : {}),
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function svgProps(size = 16) {
+  return {
+    width: size,
+    height: size,
+    viewBox: "0 0 16 16",
+    fill: "none",
+    "aria-hidden": true as const,
+  };
+}
+
+function IconPointer() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M3.2 2.4 12.5 7.1l-4.1 1.2-1.2 4.1Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconSquiggle() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M2.8 10.2c1.4-3.2 2.6-4.8 3.6-4.8 1.2 0 1.5 2.6 2.6 2.6 1.2 0 1.8-3.8 4.2-4.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconMeasure() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M3.2 12.4V5.2h2.2M3.2 12.4H10.4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m9.2 3.4 3.4 3.4-1.5.4-.4 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconDiamond() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="m8 2.4 5.2 5.2L8 12.8 2.8 7.6Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.2 7.6h3.6M8.4 6.2 9.8 7.6 8.4 9"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconCode() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M5.2 4.4 2.6 8l2.6 3.6M10.8 4.4 13.4 8l-2.6 3.6M9.1 3.8 6.9 12.2"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconSessions() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M3 3.2h10v7.1H7.2L4 12.8v-2.5H3Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.5 5.6h5M5.5 7.8h3.6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconDiscard() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="m4.2 4.2 7.6 7.6M11.8 4.2 4.2 11.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconKeep() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="m3.4 8.1 2.8 2.8 6.4-6.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconClear() {
+  return (
+    <svg {...svgProps()} aria-hidden="true">
+      <path
+        d="M5.2 3.4h5.6M6.2 3.4V2.6h3.6v.8M4.6 5.2h6.8l-.6 7.2H5.2Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LogoMark() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        font: "600 17px/1 ui-sans-serif, system-ui, sans-serif",
+        letterSpacing: "-0.04em",
+      }}
+    >
+      S
+    </span>
   );
 }
 

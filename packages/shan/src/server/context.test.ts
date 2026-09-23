@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { normalizePromptContext, promptWithContext } from "./context";
+import {
+  drawingFromPromptContext,
+  normalizePromptContext,
+  promptWithContext,
+} from "./context";
 
 describe("visual prompt context", () => {
   test("bounds and normalizes selected-element and drawing data", () => {
@@ -16,6 +20,7 @@ describe("visual prompt context", () => {
         { x: -2, y: 3, t: -10 },
         { x: "bad", y: 0, t: 1 },
       ],
+      viewport: { width: 1440, height: 900 },
     });
 
     expect(context?.selectedElement).toMatchObject({
@@ -25,6 +30,7 @@ describe("visual prompt context", () => {
       bounds: { x: 10, y: 20, width: 0, height: 300 },
     });
     expect(context?.drawing).toEqual([{ x: 0, y: 1, t: 0 }]);
+    expect(context?.viewport).toEqual({ width: 1440, height: 900 });
   });
 
   test("adds visual context to the coding request", () => {
@@ -72,5 +78,30 @@ describe("visual prompt context", () => {
     expect(result).toContain("predominantly rightward");
     expect(result).toContain("animate the selected element itself");
     expect(result).toContain("Do not animate unrelated elements");
+  });
+
+  test("extracts only drawing data for session history", () => {
+    const context = normalizePromptContext({
+      selectedElement: {
+        selector: "main > h1",
+        tagName: "h1",
+        text: "Hello",
+        html: "<h1>Hello</h1>",
+        bounds: {},
+      },
+      drawing: [
+        { x: 0.1, y: 0.2, t: 0 },
+        { x: 0.8, y: 0.2, t: 240 },
+      ],
+      viewport: { width: 1440, height: 900 },
+    });
+
+    expect(drawingFromPromptContext(context)).toEqual({
+      points: [
+        { x: 0.1, y: 0.2, t: 0 },
+        { x: 0.8, y: 0.2, t: 240 },
+      ],
+      viewport: { width: 1440, height: 900 },
+    });
   });
 });

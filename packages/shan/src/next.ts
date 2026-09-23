@@ -6,7 +6,10 @@ import {
 } from "./models";
 import { createMotionRouteHandlers } from "./motion-next";
 import { runCodingAgent } from "./server/agent";
-import { normalizePromptContext } from "./server/context";
+import {
+  drawingFromPromptContext,
+  normalizePromptContext,
+} from "./server/context";
 import {
   discardProposal,
   getActiveProposal,
@@ -183,12 +186,18 @@ export function createShanRouteHandler(options: ShanRouteOptions = {}) {
             409,
           );
         }
-        const turn = await beginTurn(root, body.prompt.trim(), sessionId);
+        const context = normalizePromptContext(body.context);
+        const turn = await beginTurn(
+          root,
+          body.prompt.trim(),
+          sessionId,
+          drawingFromPromptContext(context),
+        );
         try {
           const proposal = await runCodingAgent({
             root,
             prompt: body.prompt.trim(),
-            context: normalizePromptContext(body.context),
+            context,
             apiKey: options.apiKey,
             model: options.model,
             modelId: selectedModel(body),

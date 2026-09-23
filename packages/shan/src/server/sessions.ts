@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type {
   ShanAgentActivity,
   ShanConversationMessage,
+  ShanDrawing,
   ShanSession,
   ShanSessionSummary,
 } from "../types";
@@ -175,7 +176,12 @@ function sessionTitle(prompt: string) {
     : `${normalized.slice(0, 49).trimEnd()}…`;
 }
 
-export function beginTurn(root: string, prompt: string, sessionId = "default") {
+export function beginTurn(
+  root: string,
+  prompt: string,
+  sessionId = "default",
+  drawing?: ShanDrawing,
+) {
   return serialize(root, sessionId, async () => {
     const current = await getSession(root, sessionId);
     if (current.status === "working")
@@ -187,6 +193,7 @@ export function beginTurn(root: string, prompt: string, sessionId = "default") {
       role: "user",
       text: prompt,
       createdAt: new Date().toISOString(),
+      ...(drawing ? { drawing } : {}),
     };
     const session: ShanSession = {
       ...current,

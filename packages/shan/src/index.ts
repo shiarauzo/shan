@@ -11,6 +11,7 @@ export type {
   ShanAgentActivity,
   ShanApiResponse,
   ShanConversationMessage,
+  ShanDrawing,
   ShanPromptContext,
   ShanSession,
   ShanSessionSummary,

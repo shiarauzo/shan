@@ -27,9 +27,15 @@ export type SelectedElementContext = {
   bounds: { x: number; y: number; width: number; height: number };
 };
 
+export type ShanDrawing = {
+  points: { x: number; y: number; t: number }[];
+  viewport?: { width: number; height: number };
+};
+
 export type ShanPromptContext = {
   selectedElement?: SelectedElementContext;
-  drawing?: { x: number; y: number; t: number }[];
+  drawing?: ShanDrawing["points"];
+  viewport?: ShanDrawing["viewport"];
 };
 
 export type ShanConversationMessage = {
@@ -38,6 +44,7 @@ export type ShanConversationMessage = {
   role: "user" | "assistant";
   text: string;
   createdAt: string;
+  drawing?: ShanDrawing;
   proposalId?: string;
   proposalStatus?: "previewing" | "kept" | "discarded";
 };

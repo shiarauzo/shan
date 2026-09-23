@@ -71,6 +71,23 @@ describe("conversation sessions", () => {
     expect(session.messages[1].proposalStatus).toBe("kept");
   });
 
+  test("preserves the visual context that accompanied a user message", async () => {
+    const root = await project();
+    const drawing = {
+      points: [
+        { x: 0.1, y: 0.2, t: 0 },
+        { x: 0.8, y: 0.2, t: 240 },
+      ],
+      viewport: { width: 1440, height: 900 },
+    };
+
+    const turn = await beginTurn(root, "Move it right", "default", drawing);
+    const session = await getSession(root);
+
+    expect(turn.session.messages[0]?.drawing).toEqual(drawing);
+    expect(session.messages[0]?.drawing).toEqual(drawing);
+  });
+
   test("passes prior messages into a follow-up and starts fresh on demand", async () => {
     const root = await project();
     const first = await beginTurn(root, "Add a card");

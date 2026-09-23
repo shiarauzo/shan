@@ -1,4 +1,4 @@
-import type { ShanPromptContext } from "../types";
+import type { ShanDrawing, ShanPromptContext } from "../types";
 
 function finite(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -100,6 +100,23 @@ export function normalizePromptContext(
     });
   }
 
+  if (value.viewport && typeof value.viewport === "object") {
+    const viewport = value.viewport as Record<string, unknown>;
+    if (
+      typeof viewport.width === "number" &&
+      Number.isFinite(viewport.width) &&
+      viewport.width > 0 &&
+      typeof viewport.height === "number" &&
+      Number.isFinite(viewport.height) &&
+      viewport.height > 0
+    ) {
+      context.viewport = {
+        width: Math.min(100_000, viewport.width),
+        height: Math.min(100_000, viewport.height),
+      };
+    }
+  }
+
   return context.selectedElement || context.drawing?.length
     ? context
     : undefined;
@@ -119,8 +136,18 @@ export function promptWithContext(prompt: string, context?: ShanPromptContext) {
       ? "When the request is generic or deictic (for example, ‘animate this’), animate the selected element itself and use the Drawing Note's direction as the intended motion. Do not animate unrelated elements. An explicit written request overrides this inference."
       : "Use the Drawing Note's direction to infer the intended motion or spatial change.";
     parts.push(
-      `Drawing note over the viewport. Points are chronological; coordinates are normalized from 0 to 1 and t is elapsed milliseconds.${direction ? ` Its net gesture is ${direction}.` : ""} ${selectionGuidance}\n${JSON.stringify(context.drawing)}`,
+      `Drawing note over the viewport${context.viewport ? ` (${context.viewport.width} × ${context.viewport.height} CSS pixels)` : ""}. Points are chronological; coordinates are normalized from 0 to 1 and t is elapsed milliseconds.${direction ? ` Its net gesture is ${direction}.` : ""} ${selectionGuidance}\n${JSON.stringify(context.drawing)}`,
     );
   }
   return parts.join("\n\n");
+}
+
+export function drawingFromPromptContext(
+  context?: ShanPromptContext,
+): ShanDrawing | undefined {
+  if (!context?.drawing?.length) return undefined;
+  return {
+    points: context.drawing,
+    ...(context.viewport ? { viewport: context.viewport } : {}),
+  };
 }

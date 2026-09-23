@@ -36,6 +36,7 @@ import type {
   SelectedElementContext,
   ShanAgentActivity,
   ShanApiResponse,
+  ShanDrawing,
   ShanPromptContext,
   ShanSession,
   ShanSessionSummary,
@@ -437,6 +438,27 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "pre-wrap",
   },
   assistantText: { color: ui.color.textSecondary },
+  drawingPreview: {
+    position: "relative",
+    margin: "8px 0 0",
+    overflow: "hidden",
+    border: `1px solid ${ui.color.borderStrong}`,
+    borderRadius: ui.radius.control,
+    background: ui.color.surfaceInset,
+  },
+  drawingPreviewLabel: {
+    position: "absolute",
+    zIndex: 1,
+    top: 6,
+    left: 7,
+    padding: "2px 5px",
+    borderRadius: ui.radius.small,
+    color: ui.color.textMuted,
+    background: "rgba(24,24,24,.78)",
+    fontSize: 8,
+    letterSpacing: ".04em",
+    textTransform: "uppercase",
+  },
   turnStatus: {
     display: "inline-flex",
     alignItems: "center",
@@ -645,6 +667,49 @@ export function ProposalDecisionButtons({
         {pendingAction === "keep" ? "Keeping…" : "Keep changes"}
       </button>
     </fieldset>
+  );
+}
+
+export function DrawingPreview({ drawing }: { drawing: ShanDrawing }) {
+  const { points, viewport } = drawing;
+  if (points.length < 2) return null;
+  const width =
+    viewport && Number.isFinite(viewport.width) && viewport.width > 0
+      ? viewport.width
+      : 16;
+  const height =
+    viewport && Number.isFinite(viewport.height) && viewport.height > 0
+      ? viewport.height
+      : 9;
+  const previewWidth = Math.min(220, 150 * (width / height));
+
+  return (
+    <figure
+      aria-label="Drawing used for this request"
+      style={{
+        ...styles.drawingPreview,
+        width: `min(${previewWidth}px, 100%)`,
+        aspectRatio: `${width} / ${height}`,
+      }}
+    >
+      <figcaption style={styles.drawingPreviewLabel}>Drawing</figcaption>
+      <svg
+        viewBox="0 0 1 1"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        style={{ display: "block", width: "100%", height: "100%" }}
+      >
+        <polyline
+          points={strokePolyline(points)}
+          fill="none"
+          stroke="#a78bfa"
+          strokeWidth="2.5"
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </figure>
   );
 }
 
@@ -1189,9 +1254,16 @@ export function ShanEditor({
   const selectedNode = useRef<Element | null>(null);
   const feedNode = useRef<HTMLDivElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
+  const drawingViewportRef = useRef<ShanDrawing["viewport"]>(undefined);
   const stroke = useStrokeCapture({
     enabled: mode === "draw",
-    onStart: () => setMotionMessage("Drawing note captured."),
+    onStart: () => {
+      drawingViewportRef.current = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
+      setMotionMessage("Drawing note captured.");
+    },
   });
   const busy =
     state.name === "working" ||
@@ -1364,6 +1436,9 @@ export function ShanEditor({
     return {
       ...(selected ? { selectedElement: selected } : {}),
       ...(drawing.length ? { drawing } : {}),
+      ...(drawing.length && drawingViewportRef.current
+        ? { viewport: drawingViewportRef.current }
+        : {}),
     };
   }
 
@@ -1559,6 +1634,7 @@ export function ShanEditor({
     selectedNode.current = null;
     setSelected(null);
     setSelectedBox(null);
+    drawingViewportRef.current = undefined;
     stroke.clear();
     setMode("idle");
     setMotionMessage("");
@@ -1814,6 +1890,9 @@ export function ShanEditor({
                       >
                         {message.text}
                       </p>
+                      {message.drawing?.points.length ? (
+                        <DrawingPreview drawing={message.drawing} />
+                      ) : null}
                       {proposal && message.id === proposalMessageId ? (
                         <ProposalDecisionButtons
                           disabled={busy}

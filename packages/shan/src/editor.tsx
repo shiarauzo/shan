@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   capturePageSnapshot,
   changedElements,
@@ -72,9 +73,9 @@ const ui = {
     surfaceDeep: "#181818",
     surfaceSubtle: "rgba(0,0,0,.2)",
     text: "#f5f5f5",
-    textSecondary: "rgba(255,255,255,.72)",
-    textMuted: "rgba(255,255,255,.48)",
-    textSubtle: "rgba(255,255,255,.32)",
+    textSecondary: "rgba(255,255,255,.78)",
+    textMuted: "rgba(255,255,255,.6)",
+    textSubtle: "rgba(255,255,255,.5)",
     border: "rgba(255,255,255,.1)",
     borderStrong: "rgba(255,255,255,.16)",
     positive: "#86d9a6",
@@ -284,13 +285,99 @@ const styles: Record<string, CSSProperties> = {
   sessionSelect: {
     width: "100%",
     margin: "4px 0 2px",
-    border: 0,
-    outline: 0,
-    padding: "2px 22px 2px 0",
+  },
+  selectTrigger: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    border: `1px solid ${ui.color.borderStrong}`,
+    borderRadius: ui.radius.control,
     color: ui.color.text,
-    background: ui.color.surface,
-    font: "650 14px/1.4 inherit",
+    background: ui.color.surfaceRaised,
     cursor: "pointer",
+    textAlign: "left",
+  },
+  sessionSelectTrigger: {
+    width: "100%",
+    height: 34,
+    padding: "0 9px 0 10px",
+    font: "650 14px/1.4 inherit",
+  },
+  selectValue: {
+    minWidth: 0,
+    flex: 1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  selectChevron: {
+    flex: "none",
+    color: ui.color.textMuted,
+    fontSize: 12,
+    lineHeight: 1,
+    transition: "transform 120ms ease",
+  },
+  selectMenu: {
+    position: "fixed",
+    zIndex: 2147483647,
+    maxHeight: 240,
+    overflowY: "auto",
+    border: `1px solid ${ui.color.borderStrong}`,
+    borderRadius: ui.radius.group,
+    padding: 4,
+    color: ui.color.text,
+    background: ui.color.surfaceRaised,
+    boxShadow: "0 14px 38px rgba(0,0,0,.48)",
+    fontFamily: ui.font.sans,
+    scrollbarColor: `${ui.color.borderStrong} transparent`,
+  },
+  selectOption: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    minHeight: 34,
+    border: 0,
+    borderRadius: ui.radius.small,
+    padding: "6px 8px",
+    color: "inherit",
+    background: "transparent",
+    font: "inherit",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  selectOptionCopy: {
+    minWidth: 0,
+    flex: 1,
+  },
+  selectOptionLabel: {
+    display: "block",
+    overflow: "hidden",
+    color: ui.color.textSecondary,
+    fontSize: 10,
+    fontWeight: 650,
+    lineHeight: 1.3,
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  selectOptionDescription: {
+    display: "block",
+    overflow: "hidden",
+    marginTop: 2,
+    color: ui.color.textMuted,
+    fontSize: 8,
+    lineHeight: 1.3,
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  selectCheck: {
+    width: 14,
+    flex: "none",
+    color: ui.color.accent,
+    fontSize: 11,
+    fontWeight: 800,
+    textAlign: "center",
   },
   sessionMeta: { color: ui.color.textMuted, fontSize: 9 },
   filters: { display: "flex", gap: 5, marginTop: 10 },
@@ -304,8 +391,8 @@ const styles: Record<string, CSSProperties> = {
     cursor: "pointer",
   },
   activeFilter: {
-    borderColor: ui.color.accentBorder,
-    color: "#fff",
+    border: `1px solid ${ui.color.accentBorder}`,
+    color: ui.color.surfaceDeep,
     background: ui.color.accent,
   },
   feed: {
@@ -459,7 +546,7 @@ const styles: Record<string, CSSProperties> = {
     ...control,
     height: 28,
     padding: "0 10px",
-    color: "#fff",
+    color: ui.color.surfaceDeep,
     background: ui.color.accent,
     fontSize: 10,
     fontWeight: 700,
@@ -468,13 +555,14 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: 126,
     minWidth: 0,
     marginRight: "auto",
-    border: 0,
-    outline: 0,
-    padding: "3px 18px 3px 0",
+  },
+  modelSelectTrigger: {
+    maxWidth: 126,
+    height: 26,
+    padding: "0 7px 0 8px",
     color: ui.color.textMuted,
-    background: ui.color.surfaceInset,
+    background: "transparent",
     font: "600 9px/1.3 inherit",
-    cursor: "pointer",
   },
   proposal: {
     margin: "3px 0 17px 36px",
@@ -509,6 +597,16 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "pre",
   },
 };
+
+export function activityFilterButtonStyle(
+  filter: ActivityFilter,
+  selectedFilter: ActivityFilter,
+): CSSProperties {
+  return {
+    ...styles.filterButton,
+    ...(selectedFilter === filter ? styles.activeFilter : {}),
+  };
+}
 
 async function post(endpoint: string, body: unknown): Promise<ShanApiResponse> {
   const response = await fetch(endpoint, {
@@ -712,6 +810,315 @@ function ActivityList({
           </small>
         </div>
       ))}
+    </div>
+  );
+}
+
+type StyledSelectOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
+function StyledSelect({
+  ariaLabel,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  placement = "down",
+  minMenuWidth = 0,
+  rootStyle,
+  triggerStyle,
+}: {
+  ariaLabel: string;
+  value?: string;
+  options: readonly StyledSelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  placement?: "up" | "down";
+  minMenuWidth?: number;
+  rootStyle?: CSSProperties;
+  triggerStyle?: CSSProperties;
+}) {
+  const listboxId = useId();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const typeaheadRef = useRef({ query: "", updatedAt: 0 });
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const [highlightedIndex, setHighlightedIndex] = useState(
+    Math.max(0, selectedIndex),
+  );
+  const [menuPosition, setMenuPosition] = useState<CSSProperties>({});
+  const selectedOption =
+    selectedIndex >= 0 ? options[selectedIndex] : undefined;
+
+  const positionMenu = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const viewportPadding = 8;
+    const gap = 6;
+    const estimatedHeight = Math.min(
+      240,
+      options.reduce(
+        (height, option) => height + (option.description ? 47 : 38),
+        8,
+      ),
+    );
+    const spaceAbove = rect.top - viewportPadding;
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const preferAbove = placement === "up";
+    const placeAbove = preferAbove
+      ? spaceAbove >= estimatedHeight || spaceAbove > spaceBelow
+      : spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
+    const availableHeight = placeAbove ? spaceAbove - gap : spaceBelow - gap;
+    const width = Math.min(
+      Math.max(rect.width, minMenuWidth),
+      window.innerWidth - viewportPadding * 2,
+    );
+    const left = Math.min(
+      Math.max(viewportPadding, rect.left),
+      window.innerWidth - width - viewportPadding,
+    );
+
+    setMenuPosition({
+      left,
+      width,
+      maxHeight: Math.max(40, Math.min(240, availableHeight)),
+      ...(placeAbove
+        ? { bottom: window.innerHeight - rect.top + gap }
+        : { top: rect.bottom + gap }),
+    });
+  }, [minMenuWidth, options, placement]);
+
+  const openMenu = useCallback(() => {
+    if (disabled || options.length === 0) return;
+    positionMenu();
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setOpen(true);
+  }, [disabled, options.length, positionMenu, selectedIndex]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (
+        target &&
+        !rootRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
+    const reposition = () => positionMenu();
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open, positionMenu]);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  useEffect(() => {
+    if (!open) return;
+    document
+      .getElementById(`${listboxId}-option-${highlightedIndex}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex, listboxId, open]);
+
+  function choose(index: number) {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (disabled) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) {
+        openMenu();
+        return;
+      }
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      setHighlightedIndex(
+        (index) => (index + direction + options.length) % options.length,
+      );
+      return;
+    }
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      if (!open) openMenu();
+      setHighlightedIndex(event.key === "Home" ? 0 : options.length - 1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (open) choose(highlightedIndex);
+      else openMenu();
+      return;
+    }
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      return;
+    }
+    if (event.key === "Tab") setOpen(false);
+    if (
+      event.key.length === 1 &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey
+    ) {
+      event.preventDefault();
+      const now = Date.now();
+      const previous = typeaheadRef.current;
+      const query =
+        now - previous.updatedAt > 500
+          ? event.key.toLocaleLowerCase()
+          : `${previous.query}${event.key.toLocaleLowerCase()}`;
+      typeaheadRef.current = { query, updatedAt: now };
+      const start = Math.max(0, highlightedIndex + 1);
+      const indexes = [
+        ...options.slice(start).map((_, index) => start + index),
+        ...options.slice(0, start).map((_, index) => index),
+      ];
+      const match = indexes.find((index) =>
+        options[index]?.label.toLocaleLowerCase().startsWith(query),
+      );
+      if (match !== undefined) {
+        if (!open) openMenu();
+        setHighlightedIndex(match);
+      }
+    }
+  }
+
+  return (
+    <div ref={rootRef} style={{ position: "relative", ...rootStyle }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        role="combobox"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={
+          open ? `${listboxId}-option-${highlightedIndex}` : undefined
+        }
+        disabled={disabled}
+        title={selectedOption?.description}
+        style={{
+          ...styles.selectTrigger,
+          ...triggerStyle,
+          ...(open || focused
+            ? {
+                borderColor: ui.color.accent,
+                boxShadow: `0 0 0 2px ${ui.color.accentMuted}`,
+              }
+            : {}),
+          ...(disabled ? { opacity: 0.5, cursor: "default" } : {}),
+        }}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onKeyDown={handleKeyDown}
+      >
+        <span style={styles.selectValue}>
+          {selectedOption?.label ?? "Select…"}
+        </span>
+        <span
+          aria-hidden="true"
+          style={{
+            ...styles.selectChevron,
+            transform: open ? "rotate(180deg)" : "none",
+          }}
+        >
+          ⌄
+        </span>
+      </button>
+      {open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              data-shan-editor
+              id={listboxId}
+              role="listbox"
+              aria-label={ariaLabel}
+              style={{ ...styles.selectMenu, ...menuPosition }}
+            >
+              {options.map((option, index) => {
+                const selected = index === selectedIndex;
+                const highlighted = index === highlightedIndex;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    id={`${listboxId}-option-${index}`}
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={selected}
+                    style={{
+                      ...styles.selectOption,
+                      ...(highlighted ? { background: ui.color.accent } : {}),
+                    }}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onClick={() => choose(index)}
+                  >
+                    <span style={styles.selectOptionCopy}>
+                      <span
+                        style={{
+                          ...styles.selectOptionLabel,
+                          ...(selected ? { color: ui.color.text } : {}),
+                          ...(highlighted
+                            ? { color: ui.color.surfaceDeep }
+                            : {}),
+                        }}
+                      >
+                        {option.label}
+                      </span>
+                      {option.description ? (
+                        <span
+                          style={{
+                            ...styles.selectOptionDescription,
+                            ...(highlighted
+                              ? { color: ui.color.surfaceDeep }
+                              : {}),
+                          }}
+                        >
+                          {option.description}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        ...styles.selectCheck,
+                        ...(highlighted ? { color: ui.color.surfaceDeep } : {}),
+                      }}
+                    >
+                      {selected ? "✓" : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -1169,6 +1576,23 @@ export function ShanEditor({
   const hasContext = !!selected || stroke.points.length > 0;
   const status =
     state.name === "error" || state.name === "success" ? state.message : null;
+  const sessionOptions: StyledSelectOption[] = sessionList.map((summary) => ({
+    value: summary.id,
+    label: `${summary.id === currentSessionId ? "Current — " : ""}${summary.title}`,
+    description: `${summary.messageCount} message${summary.messageCount === 1 ? "" : "s"}${summary.status === "working" ? " · Agent working" : ""}`,
+  }));
+  if (session && !sessionList.some((summary) => summary.id === session.id)) {
+    sessionOptions.push({
+      value: session.id,
+      label: session.title,
+      description: `${session.messages.length} message${session.messages.length === 1 ? "" : "s"}`,
+    });
+  }
+  const modelOptions: StyledSelectOption[] = models.map((model) => ({
+    value: model.id,
+    label: model.label,
+    description: model.description,
+  }));
 
   if (!mounted) return null;
 
@@ -1207,7 +1631,7 @@ export function ShanEditor({
           <polyline
             points={strokePolyline(stroke.points)}
             fill="none"
-            stroke={ui.color.accent}
+            stroke="#7c3aed"
             strokeWidth="2.5"
             vectorEffect="non-scaling-stroke"
             strokeLinecap="round"
@@ -1218,10 +1642,8 @@ export function ShanEditor({
       {proposal && state.name !== "refreshing" ? (
         <ChangeHighlights before={pageBeforeChange} />
       ) : null}
-      {hoverBox ? <Highlight box={hoverBox} color={ui.color.info} /> : null}
-      {selectedBox ? (
-        <Highlight box={selectedBox} color={ui.color.accent} />
-      ) : null}
+      {hoverBox ? <Highlight box={hoverBox} color="#60a5fa" /> : null}
+      {selectedBox ? <Highlight box={selectedBox} color="#a78bfa" /> : null}
 
       {agentOpen ? (
         <aside
@@ -1267,23 +1689,16 @@ export function ShanEditor({
             <div style={styles.sessionEyebrow}>
               {readOnly ? "Previous session · Read only" : "Current session"}
             </div>
-            <select
-              aria-label="Conversation session"
+            <StyledSelect
+              ariaLabel="Conversation session"
               value={session?.id ?? ""}
-              onChange={(event) => void viewSession(event.target.value)}
-              style={styles.sessionSelect}
-            >
-              {sessionList.map((summary) => (
-                <option key={summary.id} value={summary.id}>
-                  {summary.id === currentSessionId ? "Current — " : ""}
-                  {summary.title}
-                </option>
-              ))}
-              {session &&
-              !sessionList.some((summary) => summary.id === session.id) ? (
-                <option value={session.id}>{session.title}</option>
-              ) : null}
-            </select>
+              options={sessionOptions}
+              disabled={busy}
+              onChange={(sessionId) => void viewSession(sessionId)}
+              rootStyle={styles.sessionSelect}
+              triggerStyle={styles.sessionSelectTrigger}
+              minMenuWidth={280}
+            />
             <div style={styles.sessionMeta}>
               {session?.messages.length ?? 0} messages ·{" "}
               {session?.activities.length ?? 0} activities
@@ -1305,10 +1720,7 @@ export function ShanEditor({
                 <button
                   key={filter}
                   type="button"
-                  style={{
-                    ...styles.filterButton,
-                    ...(activityFilter === filter ? styles.activeFilter : {}),
-                  }}
+                  style={activityFilterButtonStyle(filter, activityFilter)}
                   onClick={() => setActivityFilter(filter)}
                 >
                   {filter === "all"
@@ -1554,30 +1966,17 @@ export function ShanEditor({
               />
               <div style={styles.composerFooter}>
                 {models.length > 1 ? (
-                  <select
-                    aria-label="AI model"
+                  <StyledSelect
+                    ariaLabel="AI model"
                     disabled={composerDisabled}
                     value={selectedModelId}
-                    onChange={(event) => selectModel(event.target.value)}
-                    style={{
-                      ...styles.select,
-                      opacity: composerDisabled ? 0.5 : 1,
-                    }}
-                    title={
-                      models.find((model) => model.id === selectedModelId)
-                        ?.description
-                    }
-                  >
-                    {models.map((model) => (
-                      <option
-                        key={model.id}
-                        value={model.id}
-                        title={model.description}
-                      >
-                        {model.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={modelOptions}
+                    onChange={selectModel}
+                    placement="up"
+                    minMenuWidth={190}
+                    rootStyle={styles.select}
+                    triggerStyle={styles.modelSelectTrigger}
+                  />
                 ) : (
                   <span
                     style={{
@@ -1674,20 +2073,6 @@ export function ShanEditor({
 
           {proposal ? (
             <>
-              <p
-                style={{
-                  ...styles.note,
-                  color:
-                    state.name === "error"
-                      ? ui.color.danger
-                      : ui.color.textMuted,
-                }}
-                title={
-                  state.name === "error" ? state.message : proposal.summary
-                }
-              >
-                {state.name === "error" ? state.message : proposal.summary}
-              </p>
               <ToolButton
                 label="Discard"
                 disabled={busy}
@@ -1967,7 +2352,7 @@ function ChangeHighlights({ before }: { before?: PageSnapshot }) {
   }, [elements]);
 
   return boxes.map(({ key, ...box }) => (
-    <Highlight key={key} box={box} color={ui.color.warning} label="Changed" />
+    <Highlight key={key} box={box} color="#f59e0b" label="Changed" />
   ));
 }
 
@@ -2006,7 +2391,7 @@ function Highlight({
             left: -2,
             padding: "2px 6px",
             borderRadius: "5px 5px 5px 0",
-            color: ui.color.surfaceDeep,
+            color: "#18181b",
             background: color,
             font: "700 10px/1.4 ui-sans-serif, system-ui, sans-serif",
             letterSpacing: ".06em",

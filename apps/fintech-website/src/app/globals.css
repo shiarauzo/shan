@@ -94,32 +94,74 @@ body {
 
 body.pitch-active {
   overflow: hidden;
-  background: #f4f0e8;
+  background: #0d0d0d;
+}
+
+body.pitch-active nextjs-portal {
+  display: none !important;
 }
 
 .pitch-deck ~ [data-shan-editor] {
   display: none !important;
 }
 
+/* ── slide section: barely-there entrance so there's no blank black flash ── */
 .pitch-enter {
-  animation: pitch-enter 240ms var(--ease-out) both;
+  animation: pitch-enter 180ms ease both;
+}
+@keyframes pitch-enter {
+  from { opacity: 0.88; }
+  to   { opacity: 1; }
 }
 
-@keyframes pitch-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ── per-element staged animations ── */
+
+/* hero numeral / headline — enters first */
+.pitch-hero-in {
+  animation: pitch-hero-in 400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes pitch-hero-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* supporting text — staggered 80 ms after hero */
+.pitch-sub-in {
+  animation: pitch-sub-in 340ms cubic-bezier(0.23, 1, 0.32, 1) 80ms both;
+}
+@keyframes pitch-sub-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* visual elements (mock page, diff, canvas) — staggered 150 ms */
+.pitch-visual-in {
+  animation: pitch-visual-in 360ms cubic-bezier(0.23, 1, 0.32, 1) 150ms both;
+}
+@keyframes pitch-visual-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── waveform bob — PromptSlide bars ── */
+@keyframes wave-bob {
+  0%, 100% { transform: scaleY(1); }
+  50%       { transform: scaleY(0.3); }
+}
+
+/* ── selection ring pulse ── */
+@keyframes selection-pulse {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 0.2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pitch-enter {
-    animation: none;
-  }
+  .pitch-enter     { animation: none; }
+  .pitch-hero-in   { animation: none; }
+  .pitch-sub-in    { animation: none; }
+  .pitch-visual-in { animation: none; }
+  .wave-bar        { animation: none !important; }
+  .selection-ring  { animation: none !important; }
 }
 
 .landing-skip {

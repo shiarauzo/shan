@@ -1,5 +1,10 @@
 import { Demo } from "@/components/demo";
+import { SplashGate } from "@/components/splash";
 
 export default function Home() {
-  return <Demo />;
+  return (
+    <SplashGate>
+      <Demo />
+    </SplashGate>
+  );
 }

@@ -1,4 +1,5 @@
 import { PICTURES } from "@/lib/pictures";
+import { SeeCardLink } from "./see-card-link";
 
 export function Demo() {
   return (
@@ -23,12 +24,7 @@ export function Demo() {
             A card, a transfer, and the member who holds them.
           </p>
           <div className="mt-8">
-            <a
-              href="#account"
-              className="inline-flex h-10 items-center rounded-full bg-[#161616] px-4 text-sm text-[#f3f0e8] transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-[#161616]/85 focus-visible:ring-2 focus-visible:ring-[#161616] focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.96]"
-            >
-              See the card
-            </a>
+            <SeeCardLink href="#account">See the card</SeeCardLink>
           </div>
         </section>
 
@@ -38,7 +34,10 @@ export function Demo() {
           </h2>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {PICTURES.map((picture) => {
-              const span = picture.id === "card" ? "sm:col-span-2 lg:col-span-2 lg:row-span-2" : "";
+              const span =
+                picture.id === "card"
+                  ? "sm:col-span-2 lg:col-span-2 lg:row-span-2"
+                  : "";
               return (
                 <li key={picture.id} className={span}>
                   <figure>
@@ -47,9 +46,10 @@ export function Demo() {
                       alt={picture.alt}
                       width={1200}
                       height={900}
-                      className={`w-full rounded-[28px] ${picture.id === "card"
-                        ? "aspect-[4/3] object-contain lg:aspect-[4/5] lg:h-full"
-                        : "aspect-[4/5] object-cover outline outline-1 outline-black/10"
+                      className={`w-full rounded-[28px] ${
+                        picture.id === "card"
+                          ? "aspect-[4/3] object-contain lg:aspect-[4/5] lg:h-full"
+                          : "aspect-[4/5] object-cover outline outline-1 outline-black/10"
                       }`}
                     />
                     <figcaption className="mt-3 text-sm leading-5 text-[#161616]/55">

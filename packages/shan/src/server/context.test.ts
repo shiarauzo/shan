@@ -9,7 +9,7 @@ describe("visual prompt context", () => {
         tagName: "section",
         classNames: ["hero", 4],
         text: "Welcome",
-        html: "<section id=\"hero\">Welcome</section>",
+        html: '<section id="hero">Welcome</section>',
         bounds: { x: 10, y: 20, width: -5, height: 300 },
       },
       drawing: [
@@ -37,7 +37,10 @@ describe("visual prompt context", () => {
         html: "<h1>Hello</h1>",
         bounds: {},
       },
-      drawing: [{ x: 0.1, y: 0.2, t: 0 }, { x: 0.8, y: 0.2, t: 300 }],
+      drawing: [
+        { x: 0.1, y: 0.2, t: 0 },
+        { x: 0.8, y: 0.2, t: 300 },
+      ],
     });
     const result = promptWithContext("Move it right", context);
 
@@ -45,5 +48,29 @@ describe("visual prompt context", () => {
     expect(result).toContain("Selected element context");
     expect(result).toContain("main > h1");
     expect(result).toContain("Drawing note over the viewport");
+  });
+
+  test("interprets a rightward drawing as motion of the selected element", () => {
+    const context = normalizePromptContext({
+      selectedElement: {
+        selector: "main a",
+        tagName: "a",
+        classNames: [],
+        text: "See the card",
+        html: '<a href="#account">See the card</a>',
+        bounds: { x: 54, y: 390, width: 142, height: 50 },
+      },
+      drawing: [
+        { x: 0.03, y: 0.4, t: 0 },
+        { x: 0.42, y: 0.39, t: 180 },
+        { x: 0.85, y: 0.41, t: 360 },
+      ],
+    });
+
+    const result = promptWithContext("animate this", context);
+
+    expect(result).toContain("predominantly rightward");
+    expect(result).toContain("animate the selected element itself");
+    expect(result).toContain("Do not animate unrelated elements");
   });
 });

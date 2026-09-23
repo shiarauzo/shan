@@ -122,6 +122,45 @@ body.pitch-active {
   }
 }
 
+/* "See the card" CTA: the pill sweeps right, settles, and eases back. */
+.cta-sweep {
+  animation: cta-sweep 620ms both;
+}
+
+@keyframes cta-sweep {
+  0% {
+    transform: translateX(0) scale(0.96);
+    animation-timing-function: var(--ease-out);
+  }
+  30% {
+    transform: translateX(16px) scale(1);
+    animation-timing-function: linear;
+  }
+  56% {
+    transform: translateX(16px) scale(1);
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes cta-sweep-fade {
+  0%,
+  100% {
+    background-color: #161616;
+  }
+  45% {
+    background-color: #161616b3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-sweep {
+    animation: cta-sweep-fade 420ms var(--ease-out) both;
+  }
+}
+
 .landing-skip {
   position: absolute;
   width: 1px;

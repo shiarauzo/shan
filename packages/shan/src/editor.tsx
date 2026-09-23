@@ -61,10 +61,61 @@ type EditorState =
 
 type Box = { top: number; left: number; width: number; height: number };
 
-const line = "rgba(255,255,255,.09)";
-const strongLine = "rgba(255,255,255,.14)";
-const BLUE = "#0d99ff";
-const ICON = "#f5f5f5";
+const ui = {
+  color: {
+    accent: "#0d99ff",
+    accentMuted: "rgba(13,153,255,.16)",
+    accentBorder: "rgba(13,153,255,.34)",
+    surface: "#2c2c2c",
+    surfaceRaised: "#333333",
+    surfaceInset: "#242424",
+    surfaceDeep: "#181818",
+    surfaceSubtle: "rgba(0,0,0,.2)",
+    text: "#f5f5f5",
+    textSecondary: "rgba(255,255,255,.72)",
+    textMuted: "rgba(255,255,255,.48)",
+    textSubtle: "rgba(255,255,255,.32)",
+    border: "rgba(255,255,255,.1)",
+    borderStrong: "rgba(255,255,255,.16)",
+    positive: "#86d9a6",
+    positiveMuted: "rgba(134,217,166,.12)",
+    positiveBorder: "rgba(134,217,166,.24)",
+    warning: "#e4c780",
+    danger: "#ee9b96",
+    info: "#8dc7ff",
+  },
+  radius: {
+    small: 6,
+    control: 8,
+    group: 10,
+    composer: 12,
+    panel: 14,
+    round: 999,
+  },
+  shadow: {
+    floating: "0 18px 48px rgba(0,0,0,.4)",
+    inset: "0 5px 20px rgba(0,0,0,.16)",
+  },
+  font: {
+    sans: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    mono: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  },
+} as const;
+
+const control: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: 32,
+  border: 0,
+  borderRadius: ui.radius.control,
+  color: ui.color.text,
+  background: "transparent",
+  font: `600 11px/1.2 ${ui.font.sans}`,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
 const styles: Record<string, CSSProperties> = {
   logoButton: {
     pointerEvents: "auto",
@@ -77,11 +128,11 @@ const styles: Record<string, CSSProperties> = {
     width: 40,
     height: 40,
     padding: 0,
-    border: "1px solid rgba(255,255,255,.32)",
+    border: `1px solid ${ui.color.borderStrong}`,
     borderRadius: "50%",
-    background: "#0a0a0a",
-    color: "#fff",
-    boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+    background: ui.color.surface,
+    color: ui.color.text,
+    boxShadow: ui.shadow.floating,
     cursor: "pointer",
   },
   toolbar: {
@@ -97,12 +148,12 @@ const styles: Record<string, CSSProperties> = {
     height: 48,
     maxWidth: "calc(100vw - 28px)",
     padding: "6px 8px",
-    border: "1px solid rgba(255,255,255,.1)",
-    borderRadius: 14,
-    background: "#2c2c2c",
-    boxShadow: "0 18px 48px rgba(0,0,0,.4)",
-    color: ICON,
-    font: "500 12px/1.2 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    border: `1px solid ${ui.color.border}`,
+    borderRadius: ui.radius.panel,
+    background: ui.color.surface,
+    boxShadow: ui.shadow.floating,
+    color: ui.color.text,
+    font: `500 12px/1.2 ${ui.font.sans}`,
   },
   group: {
     display: "flex",
@@ -115,32 +166,24 @@ const styles: Record<string, CSSProperties> = {
     gap: 2,
     marginLeft: 4,
     padding: "2px 4px",
-    borderRadius: 10,
-    background: "rgba(0,0,0,.28)",
+    borderRadius: ui.radius.group,
+    background: ui.color.surfaceSubtle,
   },
   divider: {
     width: 1,
     height: 22,
     margin: "0 6px",
-    background: "rgba(255,255,255,.14)",
+    background: ui.color.borderStrong,
     flex: "none",
   },
   tool: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
+    ...control,
     gap: 1,
-    height: 32,
     minWidth: 32,
     padding: "0 6px",
-    border: 0,
-    borderRadius: 8,
-    background: "transparent",
-    color: ICON,
-    cursor: "pointer",
   },
   toolActive: {
-    background: BLUE,
+    background: ui.color.accent,
     color: "#fff",
   },
   toolDisabled: {
@@ -153,89 +196,77 @@ const styles: Record<string, CSSProperties> = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    color: "rgba(255,255,255,.55)",
+    color: ui.color.textMuted,
     fontSize: 11,
   },
   sessionPanel: {
     position: "fixed",
     zIndex: 2147483644,
-    top: 12,
-    right: 12,
+    top: 20,
+    right: 20,
     bottom: 82,
     display: "flex",
     flexDirection: "column",
-    width: "min(430px, calc(100vw - 24px))",
+    width: "min(410px, calc(100vw - 40px))",
     overflow: "hidden",
-    border: `1px solid ${strongLine}`,
-    borderRadius: 16,
-    color: "#f3f4ef",
-    background: "rgba(17,20,18,.975)",
-    boxShadow: "0 28px 90px rgba(9,12,10,.36), 0 3px 12px rgba(9,12,10,.18)",
-    backdropFilter: "blur(20px)",
-    font: "500 13px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    border: `1px solid ${ui.color.border}`,
+    borderRadius: ui.radius.panel,
+    color: ui.color.text,
+    background: ui.color.surface,
+    boxShadow: ui.shadow.floating,
+    font: `500 13px/1.45 ${ui.font.sans}`,
   },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    flex: "0 0 54px",
-    padding: "0 11px 0 13px",
-    borderBottom: `1px solid ${line}`,
+    flex: "0 0 48px",
+    padding: "0 8px",
+    borderBottom: `1px solid ${ui.color.border}`,
   },
-  headerStart: { display: "flex", alignItems: "center", gap: 9 },
+  headerStart: { display: "flex", alignItems: "center", gap: 6 },
   minimizeButton: {
-    display: "grid",
-    placeItems: "center",
-    width: 28,
-    height: 28,
-    border: `1px solid ${strongLine}`,
-    borderRadius: 8,
+    ...control,
+    width: 32,
     padding: 0,
-    color: "#b7bcb7",
-    background: "rgba(255,255,255,.035)",
-    font: "600 16px/1 inherit",
-    cursor: "pointer",
+    color: ui.color.textSecondary,
+    fontSize: 16,
   },
-  brand: { display: "flex", alignItems: "center", gap: 8, fontWeight: 700 },
+  brand: { display: "flex", alignItems: "center", gap: 7, fontWeight: 650 },
   mark: {
     display: "grid",
     placeItems: "center",
-    width: 28,
-    height: 28,
-    border: "1px solid rgba(168,230,193,.2)",
-    borderRadius: 9,
-    color: "#a8e6c1",
-    background: "#173d28",
-    fontSize: 14,
+    width: 26,
+    height: 26,
+    border: `1px solid ${ui.color.accentBorder}`,
+    borderRadius: ui.radius.control,
+    color: ui.color.accent,
+    background: ui.color.accentMuted,
+    fontSize: 13,
   },
   live: {
     padding: "2px 6px",
-    borderRadius: 999,
-    color: "#a8e6c1",
-    background: "#173d28",
+    borderRadius: ui.radius.round,
+    color: ui.color.info,
+    background: ui.color.accentMuted,
     fontSize: 8,
     fontWeight: 700,
     letterSpacing: ".08em",
     textTransform: "uppercase",
   },
   newSession: {
-    display: "inline-flex",
-    alignItems: "center",
+    ...control,
     gap: 5,
-    border: `1px solid ${strongLine}`,
-    borderRadius: 8,
-    padding: "6px 8px",
-    color: "#d7dad5",
-    background: "rgba(255,255,255,.035)",
-    font: "600 11px/1.3 inherit",
-    cursor: "pointer",
+    padding: "0 9px",
+    color: ui.color.textSecondary,
+    background: ui.color.surfaceRaised,
   },
   sessionHeader: {
-    padding: "15px 16px 11px",
-    borderBottom: `1px solid ${line}`,
+    padding: "14px 16px 12px",
+    borderBottom: `1px solid ${ui.color.border}`,
   },
   sessionEyebrow: {
-    color: "#656b66",
+    color: ui.color.textSubtle,
     fontSize: 9,
     letterSpacing: ".09em",
     textTransform: "uppercase",
@@ -243,7 +274,7 @@ const styles: Record<string, CSSProperties> = {
   sessionTitle: {
     overflow: "hidden",
     margin: "3px 0 2px",
-    color: "#f3f4ef",
+    color: ui.color.text,
     fontSize: 16,
     fontWeight: 650,
     letterSpacing: "-.02em",
@@ -256,33 +287,33 @@ const styles: Record<string, CSSProperties> = {
     border: 0,
     outline: 0,
     padding: "2px 22px 2px 0",
-    color: "#f3f4ef",
-    background: "#111412",
+    color: ui.color.text,
+    background: ui.color.surface,
     font: "650 14px/1.4 inherit",
     cursor: "pointer",
   },
-  sessionMeta: { color: "#969d96", fontSize: 9 },
+  sessionMeta: { color: ui.color.textMuted, fontSize: 9 },
   filters: { display: "flex", gap: 5, marginTop: 10 },
   filterButton: {
     border: "1px solid transparent",
-    borderRadius: 6,
+    borderRadius: ui.radius.small,
     padding: "5px 8px",
-    color: "#969d96",
+    color: ui.color.textMuted,
     background: "transparent",
     font: "600 9px/1.2 inherit",
     cursor: "pointer",
   },
   activeFilter: {
-    borderColor: strongLine,
-    color: "#e3e5e1",
-    background: "#1d211e",
+    borderColor: ui.color.accentBorder,
+    color: "#fff",
+    background: ui.color.accent,
   },
   feed: {
     minHeight: 0,
     flex: 1,
     overflowY: "auto",
     padding: "15px 15px 24px",
-    scrollbarColor: "#343935 transparent",
+    scrollbarColor: `${ui.color.borderStrong} transparent`,
   },
   empty: {
     display: "grid",
@@ -290,7 +321,7 @@ const styles: Record<string, CSSProperties> = {
     alignContent: "center",
     minHeight: 260,
     padding: 32,
-    color: "#969d96",
+    color: ui.color.textMuted,
     textAlign: "center",
   },
   message: {
@@ -304,47 +335,47 @@ const styles: Record<string, CSSProperties> = {
     placeItems: "center",
     width: 27,
     height: 27,
-    border: `1px solid ${strongLine}`,
-    borderRadius: 8,
-    color: "#cfd2cd",
-    background: "#222622",
+    border: `1px solid ${ui.color.borderStrong}`,
+    borderRadius: ui.radius.control,
+    color: ui.color.textSecondary,
+    background: ui.color.surfaceRaised,
     fontSize: 8,
     fontWeight: 700,
   },
-  agentAvatar: { color: "#a8e6c1", background: "#173d28" },
-  messageTime: { color: "#656b66", fontSize: 9 },
+  agentAvatar: { color: ui.color.info, background: ui.color.accentMuted },
+  messageTime: { color: ui.color.textSubtle, fontSize: 9 },
   messageText: {
     margin: "4px 0 0",
-    color: "#d9dbd7",
+    color: ui.color.text,
     fontSize: 11,
     lineHeight: 1.58,
     whiteSpace: "pre-wrap",
   },
-  assistantText: { color: "#b9beb9" },
+  assistantText: { color: ui.color.textSecondary },
   turnStatus: {
     display: "inline-flex",
     alignItems: "center",
     gap: 4,
     marginTop: 7,
-    borderRadius: 6,
+    borderRadius: ui.radius.small,
     padding: "4px 7px",
-    color: "#969d96",
-    background: "#1d211e",
+    color: ui.color.textMuted,
+    background: ui.color.surfaceRaised,
     fontSize: 8,
   },
   activityGroup: {
     margin: "6px 0 8px",
     overflow: "hidden",
-    border: `1px solid ${line}`,
-    borderRadius: 8,
-    background: "rgba(0,0,0,.1)",
+    border: `1px solid ${ui.color.border}`,
+    borderRadius: ui.radius.control,
+    background: ui.color.surfaceSubtle,
   },
   activityHeader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "7px 8px",
-    color: "#969d96",
+    color: ui.color.textMuted,
     fontSize: 9,
   },
   activityRow: {
@@ -354,52 +385,56 @@ const styles: Record<string, CSSProperties> = {
     gap: 7,
     minHeight: 32,
     padding: "3px 7px",
-    borderTop: "1px solid rgba(255,255,255,.06)",
+    borderTop: `1px solid ${ui.color.border}`,
   },
   activityIcon: {
     display: "grid",
     placeItems: "center",
     width: 22,
     height: 22,
-    border: `1px solid ${line}`,
-    borderRadius: 6,
-    color: "#9bc4ff",
-    background: "#1b1e1c",
+    border: `1px solid ${ui.color.border}`,
+    borderRadius: ui.radius.small,
+    color: ui.color.info,
+    background: ui.color.surfaceInset,
     fontSize: 11,
   },
   activityLabel: {
     display: "block",
     overflow: "hidden",
-    color: "#c5c9c4",
-    font: "9px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace",
+    color: ui.color.textSecondary,
+    font: `9px/1.35 ${ui.font.mono}`,
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
   activityVerb: {
-    color: "#969d96",
-    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+    color: ui.color.textMuted,
+    fontFamily: ui.font.sans,
     fontWeight: 650,
   },
-  activityMeta: { color: "#656b66", fontSize: 8, whiteSpace: "nowrap" },
+  activityMeta: {
+    color: ui.color.textSubtle,
+    fontSize: 8,
+    whiteSpace: "nowrap",
+  },
   runningDot: {
     display: "inline-block",
     width: 6,
     height: 6,
     borderRadius: "50%",
-    background: "#e4c780",
-    boxShadow: "0 0 0 3px rgba(228,199,128,.08)",
+    background: ui.color.warning,
+    boxShadow: `0 0 0 3px ${ui.color.surfaceRaised}`,
   },
   composerWrap: {
     flex: "0 0 auto",
     padding: "0 10px 10px",
-    background: "#111412",
+    background: ui.color.surface,
   },
   composer: {
     overflow: "hidden",
-    border: `1px solid ${strongLine}`,
-    borderRadius: 12,
-    background: "#171a18",
-    boxShadow: "0 5px 20px rgba(0,0,0,.16)",
+    border: `1px solid ${ui.color.borderStrong}`,
+    borderRadius: ui.radius.composer,
+    background: ui.color.surfaceInset,
+    boxShadow: ui.shadow.inset,
   },
   textarea: {
     display: "block",
@@ -420,16 +455,14 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     padding: "5px 7px 7px 11px",
   },
-  sendHint: { marginLeft: "auto", color: "#656b66", fontSize: 9 },
   button: {
-    border: 0,
-    borderRadius: 7,
-    padding: "7px 10px",
-    color: "#142219",
-    background: "#a8e6c1",
-    font: "700 10px/1.3 inherit",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
+    ...control,
+    height: 28,
+    padding: "0 10px",
+    color: "#fff",
+    background: ui.color.accent,
+    fontSize: 10,
+    fontWeight: 700,
   },
   select: {
     maxWidth: 126,
@@ -438,37 +471,41 @@ const styles: Record<string, CSSProperties> = {
     border: 0,
     outline: 0,
     padding: "3px 18px 3px 0",
-    color: "#969d96",
-    background: "#171a18",
+    color: ui.color.textMuted,
+    background: ui.color.surfaceInset,
     font: "600 9px/1.3 inherit",
     cursor: "pointer",
   },
   proposal: {
     margin: "3px 0 17px 36px",
     overflow: "hidden",
-    border: "1px solid rgba(168,230,193,.16)",
-    borderRadius: 10,
-    background: "rgba(168,230,193,.025)",
+    border: `1px solid ${ui.color.positiveBorder}`,
+    borderRadius: ui.radius.group,
+    background: ui.color.positiveMuted,
   },
   collapseButton: {
     border: 0,
     padding: 0,
-    color: "#969d96",
+    color: ui.color.textMuted,
     background: "transparent",
     font: "600 9px/1.3 inherit",
     cursor: "pointer",
     whiteSpace: "nowrap",
   },
-  file: { borderTop: `1px solid ${line}`, padding: "6px 9px", fontSize: 9 },
+  file: {
+    borderTop: `1px solid ${ui.color.border}`,
+    padding: "6px 9px",
+    fontSize: 9,
+  },
   patch: {
     maxHeight: 180,
     overflow: "auto",
     margin: "7px 0 2px",
     padding: 8,
-    borderRadius: 7,
-    color: "#d1d5db",
-    background: "#090a0d",
-    font: "9px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace",
+    borderRadius: ui.radius.control,
+    color: ui.color.textSecondary,
+    background: ui.color.surfaceDeep,
+    font: `9px/1.45 ${ui.font.mono}`,
     whiteSpace: "pre",
   },
 };
@@ -618,11 +655,11 @@ const activityPresentation: Record<
   ShanAgentActivity["kind"],
   { group: Exclude<ActivityFilter, "all">; glyph: string; color: string }
 > = {
-  read: { group: "files", glyph: "↳", color: "#9bc4ff" },
-  search: { group: "search", glyph: "⌕", color: "#e4c780" },
-  edit: { group: "files", glyph: "±", color: "#a8e6c1" },
-  write: { group: "files", glyph: "+", color: "#a8e6c1" },
-  remove: { group: "files", glyph: "−", color: "#a8e6c1" },
+  read: { group: "files", glyph: "↳", color: ui.color.info },
+  search: { group: "search", glyph: "⌕", color: ui.color.warning },
+  edit: { group: "files", glyph: "±", color: ui.color.positive },
+  write: { group: "files", glyph: "+", color: ui.color.positive },
+  remove: { group: "files", glyph: "−", color: ui.color.positive },
 };
 
 function visibleActivities(
@@ -1170,7 +1207,7 @@ export function ShanEditor({
           <polyline
             points={strokePolyline(stroke.points)}
             fill="none"
-            stroke="#7c3aed"
+            stroke={ui.color.accent}
             strokeWidth="2.5"
             vectorEffect="non-scaling-stroke"
             strokeLinecap="round"
@@ -1181,8 +1218,10 @@ export function ShanEditor({
       {proposal && state.name !== "refreshing" ? (
         <ChangeHighlights before={pageBeforeChange} />
       ) : null}
-      {hoverBox ? <Highlight box={hoverBox} color="#60a5fa" /> : null}
-      {selectedBox ? <Highlight box={selectedBox} color="#a78bfa" /> : null}
+      {hoverBox ? <Highlight box={hoverBox} color={ui.color.info} /> : null}
+      {selectedBox ? (
+        <Highlight box={selectedBox} color={ui.color.accent} />
+      ) : null}
 
       {agentOpen ? (
         <aside
@@ -1286,7 +1325,7 @@ export function ShanEditor({
             {!session || session.messages.length === 0 ? (
               <div style={styles.empty}>
                 <span style={{ ...styles.mark, marginBottom: 12 }}>✦</span>
-                <strong style={{ color: "#f3f4ef", fontSize: 14 }}>
+                <strong style={{ color: ui.color.text, fontSize: 14 }}>
                   What should we change?
                 </strong>
                 <span style={{ maxWidth: 270, marginTop: 5, fontSize: 10 }}>
@@ -1338,10 +1377,10 @@ export function ShanEditor({
                             ...styles.turnStatus,
                             color:
                               message.proposalStatus === "discarded"
-                                ? "#e49d98"
+                                ? ui.color.danger
                                 : message.proposalStatus === "previewing"
-                                  ? "#a8e6c1"
-                                  : "#969d96",
+                                  ? ui.color.positive
+                                  : ui.color.textMuted,
                           }}
                         >
                           {message.proposalStatus === "previewing"
@@ -1380,7 +1419,7 @@ export function ShanEditor({
                           style={{
                             ...styles.messageText,
                             ...styles.assistantText,
-                            color: "#969d96",
+                            color: ui.color.textMuted,
                           }}
                         >
                           <i style={{ ...styles.runningDot, marginRight: 8 }} />
@@ -1400,7 +1439,10 @@ export function ShanEditor({
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "9px 10px",
-                    color: state.name === "refreshing" ? "#e4c780" : "#a8e6c1",
+                    color:
+                      state.name === "refreshing"
+                        ? ui.color.warning
+                        : ui.color.positive,
                     fontSize: 9,
                     fontWeight: 700,
                   }}
@@ -1413,7 +1455,9 @@ export function ShanEditor({
                   <span
                     style={{ display: "flex", alignItems: "center", gap: 8 }}
                   >
-                    <span style={{ color: "#969d96", fontWeight: 500 }}>
+                    <span
+                      style={{ color: ui.color.textMuted, fontWeight: 500 }}
+                    >
                       {proposal.files.length} file
                       {proposal.files.length === 1 ? "" : "s"}
                     </span>
@@ -1434,7 +1478,7 @@ export function ShanEditor({
                   <div
                     style={{
                       padding: "0 10px 9px",
-                      color: "#b9beb9",
+                      color: ui.color.textSecondary,
                       fontSize: 10,
                     }}
                   >
@@ -1454,10 +1498,12 @@ export function ShanEditor({
                           {file.status}
                         </span>
                         {file.path}
-                        <span style={{ marginLeft: 7, color: "#a8e6c1" }}>
+                        <span
+                          style={{ marginLeft: 7, color: ui.color.positive }}
+                        >
                           +{file.additions}
                         </span>
-                        <span style={{ marginLeft: 4, color: "#e49d98" }}>
+                        <span style={{ marginLeft: 4, color: ui.color.danger }}>
                           −{file.deletions}
                         </span>
                       </summary>
@@ -1473,7 +1519,10 @@ export function ShanEditor({
                 role="status"
                 style={{
                   margin: "0 0 12px 36px",
-                  color: state.name === "error" ? "#e49d98" : "#a8e6c1",
+                  color:
+                    state.name === "error"
+                      ? ui.color.danger
+                      : ui.color.positive,
                   fontSize: 10,
                 }}
               >
@@ -1533,14 +1582,13 @@ export function ShanEditor({
                   <span
                     style={{
                       marginRight: "auto",
-                      color: "#656b66",
+                      color: ui.color.textSubtle,
                       fontSize: 9,
                     }}
                   >
                     Current page
                   </span>
                 )}
-                <span style={styles.sendHint}>↵ Send · ⇧↵ New line</span>
                 <button
                   disabled={sendDisabled}
                   type="submit"
@@ -1631,8 +1679,8 @@ export function ShanEditor({
                   ...styles.note,
                   color:
                     state.name === "error"
-                      ? "#fca5a5"
-                      : "rgba(255,255,255,.55)",
+                      ? ui.color.danger
+                      : ui.color.textMuted,
                 }}
                 title={
                   state.name === "error" ? state.message : proposal.summary
@@ -1662,7 +1710,8 @@ export function ShanEditor({
               role="status"
               style={{
                 ...styles.note,
-                color: state.name === "error" ? "#fca5a5" : "#86efac",
+                color:
+                  state.name === "error" ? ui.color.danger : ui.color.positive,
               }}
             >
               {status}
@@ -1709,7 +1758,7 @@ function ToolButton({
       style={{
         ...styles.tool,
         ...(active ? styles.toolActive : {}),
-        ...(accent && !active ? { color: BLUE } : {}),
+        ...(accent && !active ? { color: ui.color.accent } : {}),
         ...(disabled ? styles.toolDisabled : {}),
       }}
     >
@@ -1918,7 +1967,7 @@ function ChangeHighlights({ before }: { before?: PageSnapshot }) {
   }, [elements]);
 
   return boxes.map(({ key, ...box }) => (
-    <Highlight key={key} box={box} color="#f59e0b" label="Changed" />
+    <Highlight key={key} box={box} color={ui.color.warning} label="Changed" />
   ));
 }
 
@@ -1957,7 +2006,7 @@ function Highlight({
             left: -2,
             padding: "2px 6px",
             borderRadius: "5px 5px 5px 0",
-            color: "#18181b",
+            color: ui.color.surfaceDeep,
             background: color,
             font: "700 10px/1.4 ui-sans-serif, system-ui, sans-serif",
             letterSpacing: ".06em",

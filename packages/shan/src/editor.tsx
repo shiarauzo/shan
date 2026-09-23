@@ -147,53 +147,6 @@ const styles: Record<string, CSSProperties> = {
     opacity: 0.35,
     cursor: "default",
   },
-  promptSlot: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    width: "auto",
-    minWidth: 140,
-    maxWidth: "min(460px, 52vw)",
-    height: 32,
-    marginLeft: 4,
-  },
-  modelSelect: {
-    flex: "none",
-    maxWidth: 148,
-    height: 32,
-    border: 0,
-    borderRadius: 8,
-    outline: 0,
-    padding: "0 8px",
-    color: "#f5f5f5",
-    background: "rgba(0,0,0,.35)",
-    font: "600 11px/1 ui-sans-serif, system-ui, sans-serif",
-    cursor: "pointer",
-  },
-  input: {
-    flex: 1,
-    minWidth: 0,
-    height: 32,
-    border: 0,
-    outline: 0,
-    borderRadius: 8,
-    padding: "0 10px",
-    color: "#f5f5f5",
-    background: "rgba(0,0,0,.35)",
-    font: "500 12px/1 ui-sans-serif, system-ui, sans-serif",
-  },
-  apply: {
-    flex: "none",
-    height: 32,
-    padding: "0 10px",
-    border: 0,
-    borderRadius: 8,
-    background: "#f4f4f5",
-    color: "#111",
-    font: "600 11px/1 ui-sans-serif, system-ui, sans-serif",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
   note: {
     maxWidth: 180,
     margin: "0 4px",
@@ -436,16 +389,6 @@ const styles: Record<string, CSSProperties> = {
     background: "#e4c780",
     boxShadow: "0 0 0 3px rgba(228,199,128,.08)",
   },
-  tools: {
-    display: "flex",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 5,
-    flex: "0 0 auto",
-    padding: "8px 10px",
-    borderTop: `1px solid ${line}`,
-    background: "#111412",
-  },
   composerWrap: {
     flex: "0 0 auto",
     padding: "0 10px 10px",
@@ -488,16 +431,6 @@ const styles: Record<string, CSSProperties> = {
     cursor: "pointer",
     whiteSpace: "nowrap",
   },
-  mutedButton: {
-    border: `1px solid ${strongLine}`,
-    borderRadius: 7,
-    padding: "5px 7px",
-    color: "#b7bcb7",
-    background: "transparent",
-    font: "600 9px/1.3 inherit",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
   select: {
     maxWidth: 126,
     minWidth: 0,
@@ -509,20 +442,6 @@ const styles: Record<string, CSSProperties> = {
     background: "#171a18",
     font: "600 9px/1.3 inherit",
     cursor: "pointer",
-  },
-  activeButton: {
-    border: "1px solid #a8e6c1",
-    color: "#dff5e7",
-    background: "#173d28",
-  },
-  context: {
-    minWidth: 0,
-    flex: 1,
-    overflow: "hidden",
-    color: "#656b66",
-    fontSize: 9,
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
   },
   proposal: {
     margin: "3px 0 17px 36px",
@@ -776,8 +695,7 @@ export function ShanEditor({
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [promptOpen, setPromptOpen] = useState(false);
-  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
   const [mode, setMode] = useState<EditorMode>("idle");
   const [selected, setSelected] = useState<SelectedElementContext | null>(null);
   const [selectedBox, setSelectedBox] = useState<Box | null>(null);
@@ -788,7 +706,7 @@ export function ShanEditor({
   const changesId = useId();
   const selectedNode = useRef<Element | null>(null);
   const feedNode = useRef<HTMLDivElement | null>(null);
-  const promptRef = useRef<HTMLInputElement | null>(null);
+  const promptRef = useRef<HTMLTextAreaElement | null>(null);
   const stroke = useStrokeCapture({
     enabled: mode === "draw",
     onStart: () => setMotionMessage("Drawing note captured."),
@@ -816,8 +734,8 @@ export function ShanEditor({
   }, []);
 
   useEffect(() => {
-    if (promptOpen) promptRef.current?.focus();
-  }, [promptOpen]);
+    if (agentOpen) promptRef.current?.focus();
+  }, [agentOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -892,11 +810,11 @@ export function ShanEditor({
   }, [currentSessionId, endpoint, state.name]);
 
   useEffect(() => {
-    if (!sessionsOpen) return;
+    if (!agentOpen) return;
     const node = feedNode.current;
     if (node && (session?.updatedAt || state.name))
       node.scrollTop = node.scrollHeight;
-  }, [session?.updatedAt, sessionsOpen, state.name]);
+  }, [agentOpen, session?.updatedAt, state.name]);
 
   useEffect(() => {
     if (!selected) return;
@@ -943,23 +861,19 @@ export function ShanEditor({
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (promptOpen) {
-        setPromptOpen(false);
-        return;
-      }
       if (mode !== "idle") {
         setMode("idle");
         return;
       }
-      if (sessionsOpen) {
-        setSessionsOpen(false);
+      if (agentOpen) {
+        setAgentOpen(false);
         return;
       }
       if (!busy) setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, mode, promptOpen, sessionsOpen]);
+  }, [agentOpen, busy, mode]);
 
   function promptContext(): ShanPromptContext | undefined {
     const drawing = sampleForModel(stroke.getPoints());
@@ -1111,7 +1025,6 @@ export function ShanEditor({
       }
       if (result.session) setSession(result.session);
       if (result.sessions) setSessionList(result.sessions);
-      setPromptOpen(false);
       setState(
         result.status === "previewing"
           ? { name: "previewing", proposal: result.proposal }
@@ -1179,8 +1092,8 @@ export function ShanEditor({
     setMotionMessage("");
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") {
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void sendPrompt();
     }
@@ -1197,8 +1110,7 @@ export function ShanEditor({
     setOpen((value) => {
       if (value) {
         setMode("idle");
-        setPromptOpen(false);
-        setSessionsOpen(false);
+        setAgentOpen(false);
       }
       return !value;
     });
@@ -1206,11 +1118,12 @@ export function ShanEditor({
 
   function setTool(next: EditorMode) {
     setMode((current) => (current === next ? "idle" : next));
-    if (next !== "idle") setPromptOpen(false);
   }
 
   const drawingReady = strokeIsUsable(stroke.points);
   const readOnly = !!currentSessionId && session?.id !== currentSessionId;
+  const composerDisabled = busy || readOnly;
+  const sendDisabled = !prompt.trim() || composerDisabled;
   const contextLabel = selected
     ? `${selected.selector}${stroke.points.length ? ` · drawing ${stroke.points.length} points` : ""}`
     : stroke.points.length
@@ -1271,31 +1184,31 @@ export function ShanEditor({
       {hoverBox ? <Highlight box={hoverBox} color="#60a5fa" /> : null}
       {selectedBox ? <Highlight box={selectedBox} color="#a78bfa" /> : null}
 
-      {sessionsOpen ? (
+      {agentOpen ? (
         <aside
           data-shan-editor
           id="shan-sessions"
           style={styles.sessionPanel}
-          aria-label="Agent sessions"
+          aria-label="Agent"
         >
           <header style={styles.header}>
             <div style={styles.headerStart}>
               <button
                 type="button"
                 style={styles.minimizeButton}
-                aria-label="Close agent sessions"
-                title="Close sessions"
+                aria-label="Close agent"
+                title="Close agent"
                 onClick={() => {
                   setMode("idle");
                   setHoverBox(null);
-                  setSessionsOpen(false);
+                  setAgentOpen(false);
                 }}
               >
                 <span aria-hidden="true">×</span>
               </button>
               <div style={styles.brand}>
                 <span style={styles.mark}>✦</span>
-                <span>Agent sessions</span>
+                <span>Agent</span>
                 {session?.status === "working" ? (
                   <span style={styles.live}>Live</span>
                 ) : null}
@@ -1568,6 +1481,79 @@ export function ShanEditor({
               </div>
             ) : null}
           </div>
+
+          <div style={styles.composerWrap}>
+            <form style={styles.composer} onSubmit={sendPrompt}>
+              <textarea
+                ref={promptRef}
+                aria-label="Change prompt"
+                value={prompt}
+                disabled={composerDisabled}
+                onChange={(event) => setPrompt(event.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={
+                  readOnly
+                    ? "Previous sessions are read only"
+                    : busy
+                      ? "Applying changes…"
+                      : session?.messages.length
+                        ? "Continue this conversation…"
+                        : placeholder
+                }
+                rows={1}
+                style={styles.textarea}
+              />
+              <div style={styles.composerFooter}>
+                {models.length > 1 ? (
+                  <select
+                    aria-label="AI model"
+                    disabled={composerDisabled}
+                    value={selectedModelId}
+                    onChange={(event) => selectModel(event.target.value)}
+                    style={{
+                      ...styles.select,
+                      opacity: composerDisabled ? 0.5 : 1,
+                    }}
+                    title={
+                      models.find((model) => model.id === selectedModelId)
+                        ?.description
+                    }
+                  >
+                    {models.map((model) => (
+                      <option
+                        key={model.id}
+                        value={model.id}
+                        title={model.description}
+                      >
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span
+                    style={{
+                      marginRight: "auto",
+                      color: "#656b66",
+                      fontSize: 9,
+                    }}
+                  >
+                    Current page
+                  </span>
+                )}
+                <span style={styles.sendHint}>↵ Send · ⇧↵ New line</span>
+                <button
+                  disabled={sendDisabled}
+                  type="submit"
+                  style={{
+                    ...styles.button,
+                    opacity: sendDisabled ? 0.5 : 1,
+                  }}
+                >
+                  {state.name === "working" ? "Working…" : "Send"}
+                </button>
+              </div>
+            </form>
+          </div>
         </aside>
       ) : null}
 
@@ -1627,81 +1613,18 @@ export function ShanEditor({
               <IconDiamond />
             </ToolButton>
             <ToolButton
-              label="Prompt"
-              active={promptOpen}
-              disabled={readOnly}
+              label="Agent"
+              active={agentOpen}
               onClick={() => {
                 setMode("idle");
-                setPromptOpen((value) => !value);
-              }}
-            >
-              <IconCode />
-            </ToolButton>
-            <ToolButton
-              label="Agent sessions"
-              active={sessionsOpen}
-              onClick={() => {
-                setMode("idle");
-                setSessionsOpen((value) => !value);
+                setAgentOpen((value) => !value);
               }}
             >
               <IconSessions />
             </ToolButton>
           </div>
 
-          {promptOpen ? (
-            <form style={styles.promptSlot} onSubmit={sendPrompt}>
-              {models.length > 1 ? (
-                <select
-                  aria-label="AI model"
-                  disabled={busy}
-                  value={selectedModelId}
-                  onChange={(event) => selectModel(event.target.value)}
-                  style={{ ...styles.modelSelect, opacity: busy ? 0.5 : 1 }}
-                  title={
-                    models.find((model) => model.id === selectedModelId)
-                      ?.description
-                  }
-                >
-                  {models.map((model) => (
-                    <option
-                      key={model.id}
-                      value={model.id}
-                      title={model.description}
-                    >
-                      {model.label}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-              <input
-                ref={promptRef}
-                aria-label="Prompt"
-                value={prompt}
-                disabled={busy || readOnly}
-                onChange={(event) => setPrompt(event.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={
-                  readOnly
-                    ? "Previous sessions are read only"
-                    : busy
-                      ? "Applying…"
-                      : placeholder
-                }
-                style={styles.input}
-              />
-              <button
-                type="submit"
-                disabled={!prompt.trim() || busy || readOnly}
-                style={{
-                  ...styles.apply,
-                  opacity: !prompt.trim() || busy || readOnly ? 0.5 : 1,
-                }}
-              >
-                {state.name === "working" ? "…" : "Apply"}
-              </button>
-            </form>
-          ) : proposal ? (
+          {proposal ? (
             <>
               <p
                 style={{
@@ -1864,20 +1787,6 @@ function IconDiamond() {
         d="M6.2 7.6h3.6M8.4 6.2 9.8 7.6 8.4 9"
         stroke="currentColor"
         strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconCode() {
-  return (
-    <svg {...svgProps()} aria-hidden="true">
-      <path
-        d="M5.2 4.4 2.6 8l2.6 3.6M10.8 4.4 13.4 8l-2.6 3.6M9.1 3.8 6.9 12.2"
-        stroke="currentColor"
-        strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
